@@ -1,0 +1,403 @@
+{
+  "version": 1,
+  "title": "Better T Stack",
+  "nodes": [
+    {
+      "id": "g_cloud",
+      "type": "group",
+      "position": {
+        "x": 336,
+        "y": 80
+      },
+      "data": {
+        "label": "Cloudflare",
+        "color": "#f6821f",
+        "dashed": false,
+        "icon": "cloudflare"
+      },
+      "width": 820,
+      "height": 420,
+      "style": {
+        "width": 940,
+        "height": 500
+      },
+      "resizing": false
+    },
+    {
+      "id": "g_workers",
+      "type": "group",
+      "position": {
+        "x": 48,
+        "y": 48
+      },
+      "parentId": "g_cloud",
+      "data": {
+        "label": "Workers Runtime",
+        "color": "#f6821f",
+        "dashed": true,
+        "icon": "cloudflareworkers"
+      },
+      "width": 516,
+      "height": 356,
+      "style": {
+        "width": 580,
+        "height": 380
+      },
+      "resizing": false
+    },
+    {
+      "id": "n_user",
+      "type": "tech",
+      "position": {
+        "x": 80,
+        "y": 160
+      },
+      "data": {
+        "slug": "browser",
+        "name": "User",
+        "subtitle": "browser",
+        "category": "frontend"
+      },
+      "width": 148,
+      "height": 132
+    },
+    {
+      "id": "n_start",
+      "type": "tech",
+      "position": {
+        "x": 8,
+        "y": 32
+      },
+      "parentId": "g_workers",
+      "data": {
+        "slug": "tanstack",
+        "name": "TanStack Start",
+        "subtitle": "frontend / ssr",
+        "category": "frontend"
+      },
+      "width": 148,
+      "height": 132
+    },
+    {
+      "id": "n_orpc",
+      "type": "tech",
+      "position": {
+        "x": 184,
+        "y": 32
+      },
+      "parentId": "g_workers",
+      "data": {
+        "slug": "orpc",
+        "name": "oRPC",
+        "subtitle": "type-safe rpc",
+        "category": "backend",
+        "dark": true
+      },
+      "width": 148,
+      "height": 132
+    },
+    {
+      "id": "n_hono",
+      "type": "tech",
+      "position": {
+        "x": 360,
+        "y": 32
+      },
+      "parentId": "g_workers",
+      "data": {
+        "slug": "hono",
+        "name": "Hono",
+        "subtitle": "http server",
+        "category": "backend",
+        "dark": false
+      },
+      "width": 148,
+      "height": 132
+    },
+    {
+      "id": "n_auth",
+      "type": "tech",
+      "position": {
+        "x": 112,
+        "y": 200
+      },
+      "parentId": "g_workers",
+      "data": {
+        "slug": "betterauth",
+        "name": "better-auth",
+        "subtitle": "auth",
+        "category": "auth",
+        "dark": true
+      },
+      "width": 148,
+      "height": 132
+    },
+    {
+      "id": "n_drizzle",
+      "type": "tech",
+      "position": {
+        "x": 592,
+        "y": 80
+      },
+      "parentId": "g_cloud",
+      "data": {
+        "slug": "drizzle",
+        "name": "Drizzle ORM",
+        "subtitle": "orm / migrations",
+        "category": "database",
+        "dark": false
+      },
+      "width": 148,
+      "height": 132
+    },
+    {
+      "id": "n_d1",
+      "type": "tech",
+      "position": {
+        "x": 680,
+        "y": 248
+      },
+      "parentId": "g_cloud",
+      "data": {
+        "slug": "cloudflare",
+        "name": "Cloudflare D1",
+        "subtitle": "sqlite db",
+        "category": "database"
+      },
+      "width": 148,
+      "height": 132
+    },
+    {
+      "id": "g_mono",
+      "type": "group",
+      "position": {
+        "x": 96,
+        "y": 568
+      },
+      "data": {
+        "label": "Monorepo — Turborepo + Bun workspaces",
+        "color": "#3b82f6",
+        "dashed": false,
+        "icon": "turborepo"
+      },
+      "width": 1060,
+      "height": 208,
+      "style": {
+        "width": 1180,
+        "height": 280
+      },
+      "resizing": false
+    },
+    {
+      "id": "n_bun",
+      "type": "tech",
+      "position": {
+        "x": 16,
+        "y": 40
+      },
+      "parentId": "g_mono",
+      "data": {
+        "slug": "bun",
+        "name": "Bun",
+        "subtitle": "runtime / pm",
+        "category": "backend"
+      },
+      "width": 148,
+      "height": 132
+    },
+    {
+      "id": "n_turbo",
+      "type": "tech",
+      "position": {
+        "x": 236,
+        "y": 40
+      },
+      "parentId": "g_mono",
+      "data": {
+        "slug": "turborepo",
+        "name": "Turborepo",
+        "subtitle": "build system",
+        "category": "tooling"
+      },
+      "width": 148,
+      "height": 132
+    },
+    {
+      "id": "n_oxlint",
+      "type": "tech",
+      "position": {
+        "x": 456,
+        "y": 40
+      },
+      "parentId": "g_mono",
+      "data": {
+        "slug": "oxc",
+        "name": "oxlint / oxfmt",
+        "subtitle": "lint & format",
+        "category": "tooling",
+        "dark": true
+      },
+      "width": 148,
+      "height": 132
+    },
+    {
+      "id": "n_hooks",
+      "type": "tech",
+      "position": {
+        "x": 676,
+        "y": 40
+      },
+      "parentId": "g_mono",
+      "data": {
+        "slug": "git",
+        "name": "lefthook",
+        "subtitle": "git hooks",
+        "category": "tooling"
+      },
+      "width": 148,
+      "height": 132
+    },
+    {
+      "id": "n_iac",
+      "type": "tech",
+      "position": {
+        "x": 896,
+        "y": 40
+      },
+      "parentId": "g_mono",
+      "data": {
+        "slug": "terraform",
+        "name": "Alchemy",
+        "subtitle": "iac (typescript)",
+        "category": "devops",
+        "dark": true
+      },
+      "width": 148,
+      "height": 132
+    }
+  ],
+  "edges": [
+    {
+      "id": "e_user",
+      "source": "n_user",
+      "sourceHandle": "right",
+      "target": "n_start",
+      "targetHandle": "left",
+      "type": "tech",
+      "data": {
+        "label": "HTTPS",
+        "style": "solid"
+      }
+    },
+    {
+      "id": "e_start",
+      "source": "n_start",
+      "sourceHandle": "right",
+      "target": "n_orpc",
+      "targetHandle": "left",
+      "type": "tech",
+      "data": {
+        "style": "solid"
+      }
+    },
+    {
+      "id": "e_orpc",
+      "source": "n_orpc",
+      "sourceHandle": "right",
+      "target": "n_hono",
+      "targetHandle": "left",
+      "type": "tech",
+      "data": {
+        "style": "solid"
+      }
+    },
+    {
+      "id": "e_hono",
+      "source": "n_hono",
+      "sourceHandle": "right",
+      "target": "n_drizzle",
+      "targetHandle": "left",
+      "type": "tech",
+      "data": {
+        "label": "query",
+        "style": "solid"
+      }
+    },
+    {
+      "id": "e_sql",
+      "source": "n_drizzle",
+      "sourceHandle": "bottom",
+      "target": "n_d1",
+      "targetHandle": "top",
+      "type": "tech",
+      "data": {
+        "label": "SQL",
+        "style": "solid",
+        "sourcePoint": {
+          "x": 1,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "e_auth",
+      "source": "n_auth",
+      "sourceHandle": "top",
+      "target": "n_orpc",
+      "targetHandle": "bottom",
+      "type": "tech",
+      "data": {
+        "label": "auth",
+        "style": "dashed",
+        "targetPoint": {
+          "x": 0,
+          "y": 0.84
+        },
+        "labelX": 581.5,
+        "labelY": 286.2052001953125
+      }
+    },
+    {
+      "id": "e_session",
+      "source": "n_auth",
+      "sourceHandle": "right",
+      "target": "n_d1",
+      "targetHandle": "left",
+      "type": "tech",
+      "data": {
+        "label": "session store",
+        "style": "dashed",
+        "labelX": 745.5,
+        "labelY": 355.00006103515625
+      }
+    },
+    {
+      "id": "e_precommit",
+      "source": "n_hooks",
+      "sourceHandle": "left",
+      "target": "n_oxlint",
+      "targetHandle": "right",
+      "type": "tech",
+      "data": {
+        "label": "pre-commit",
+        "style": "dashed"
+      }
+    },
+    {
+      "type": "tech",
+      "data": {
+        "style": "dashed",
+        "targetPoint": {
+          "x": 0.7369500797811717,
+          "y": 1
+        },
+        "label": "deploy / dev"
+      },
+      "source": "n_iac",
+      "sourceHandle": "top",
+      "target": "g_cloud",
+      "targetHandle": "center",
+      "id": "e_mt3tr0b2_1"
+    }
+  ]
+}

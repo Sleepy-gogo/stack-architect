@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stack Architect — Design your tech stack in the browser</title>
+    <meta
+      name="description"
+      content="A free browser-based editor for tech stack diagrams. Drag services with real brand icons onto a canvas, group them into layers, and export as PNG or SVG."
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f9fafc" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#15171e" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Stack Architect" />
+    <meta property="og:title" content="Stack Architect — Design your tech stack in the browser" />
+    <meta
+      property="og:description"
+      content="Drag services with real brand icons onto a canvas, group them into layers, connect them, and export as PNG or SVG. No account needed."
+    />
+    <meta property="og:image" content="/preview.png" />
+    <meta property="og:image:alt" content="Screenshot of the Stack Architect editor showing a tech stack diagram" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Stack Architect — Design your tech stack in the browser" />
+    <meta
+      name="twitter:description"
+      content="Drag services with real brand icons onto a canvas, group them into layers, connect them, and export as PNG or SVG. No account needed."
+    />
+    <meta name="twitter:image" content="/preview.png" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Stack Architect",
+        "description": "A free browser-based editor for tech stack diagrams. Drag services with real brand icons onto a canvas, group them into layers, and export as PNG or SVG.",
+        "applicationCategory": "DesignApplication",
+        "operatingSystem": "Any",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

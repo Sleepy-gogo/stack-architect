@@ -1,0 +1,453 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/inter";
+@import "@xyflow/react/dist/base.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ------------------------------------------------------------------ */
+/* Tokens                                                              */
+/* ------------------------------------------------------------------ */
+
+:root {
+  /* Chrome sits a shade cooler than the cards it holds. */
+  --background: oklch(0.987 0.003 250);
+  --foreground: oklch(0.24 0.02 262);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.24 0.02 262);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.24 0.02 262);
+
+  --primary: oklch(0.55 0.2 262);
+  --primary-foreground: oklch(0.99 0 0);
+
+  --secondary: oklch(0.965 0.005 250);
+  --secondary-foreground: oklch(0.24 0.02 262);
+
+  --muted: oklch(0.955 0.006 250);
+  --muted-foreground: oklch(0.505 0.017 258);
+
+  --accent: oklch(0.955 0.018 258);
+  --accent-foreground: oklch(0.24 0.02 262);
+
+  --destructive: oklch(0.56 0.21 27);
+  --destructive-foreground: oklch(0.99 0 0);
+
+  --border: oklch(0.915 0.007 250);
+  --input: oklch(0.925 0.007 250);
+  --ring: oklch(0.55 0.2 262);
+
+  --chart-1: oklch(0.55 0.2 262);
+  --chart-2: oklch(0.6 0.17 10);
+  --chart-3: oklch(0.62 0.16 145);
+  --chart-4: oklch(0.66 0.17 62);
+  --chart-5: oklch(0.58 0.2 320);
+
+  --radius: 0.225rem;
+
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.24 0.02 262);
+  --sidebar-primary: oklch(0.55 0.2 262);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.955 0.018 258);
+  --sidebar-accent-foreground: oklch(0.24 0.02 262);
+  --sidebar-border: oklch(0.915 0.007 250);
+  --sidebar-ring: oklch(0.55 0.2 262);
+
+  /* Canvas: graph paper, a touch cooler and darker than the panels. */
+  --canvas: oklch(0.972 0.005 250);
+  --grid-minor: oklch(0.925 0.008 252);
+  --grid-major: oklch(0.865 0.012 252);
+
+  --swatch-ink: #0f172a;
+
+  /* Halo painted behind edge-label text so it stays legible over strokes. */
+  --edge-label-halo: #ffffff;
+
+  --scrollbar-thumb: oklch(0.86 0.01 252);
+  --scrollbar-thumb-hover: oklch(0.74 0.015 255);
+}
+
+.dark {
+  --background: oklch(0.185 0.012 262);
+  --foreground: oklch(0.94 0.005 262);
+
+  --card: oklch(0.225 0.013 262);
+  --card-foreground: oklch(0.94 0.005 262);
+
+  --popover: oklch(0.235 0.013 262);
+  --popover-foreground: oklch(0.94 0.005 262);
+
+  --primary: oklch(0.68 0.17 262);
+  --primary-foreground: oklch(0.17 0.012 262);
+
+  --secondary: oklch(0.275 0.014 262);
+  --secondary-foreground: oklch(0.94 0.005 262);
+
+  --muted: oklch(0.28 0.014 262);
+  --muted-foreground: oklch(0.69 0.014 262);
+
+  --accent: oklch(0.32 0.04 262);
+  --accent-foreground: oklch(0.94 0.005 262);
+
+  --destructive: oklch(0.7 0.19 22);
+  --destructive-foreground: oklch(0.99 0 0);
+
+  --border: oklch(1 0 0 / 11%);
+  --input: oklch(1 0 0 / 13%);
+  --ring: oklch(0.68 0.17 262);
+
+  --chart-1: oklch(0.68 0.17 262);
+  --chart-2: oklch(0.7 0.17 10);
+  --chart-3: oklch(0.7 0.16 145);
+  --chart-4: oklch(0.74 0.17 62);
+  --chart-5: oklch(0.7 0.2 320);
+
+  --sidebar: oklch(0.205 0.012 262);
+  --sidebar-foreground: oklch(0.94 0.005 262);
+  --sidebar-primary: oklch(0.68 0.17 262);
+  --sidebar-primary-foreground: oklch(0.17 0.012 262);
+  --sidebar-accent: oklch(0.32 0.04 262);
+  --sidebar-accent-foreground: oklch(0.94 0.005 262);
+  --sidebar-border: oklch(1 0 0 / 11%);
+  --sidebar-ring: oklch(0.68 0.17 262);
+
+  --canvas: oklch(0.155 0.012 262);
+  --grid-minor: oklch(1 0 0 / 4.5%);
+  --grid-major: oklch(1 0 0 / 9%);
+
+  /* Ink is unreadable on the dark canvas, so it flips to near-white. */
+  --swatch-ink: #e2e8f0;
+
+  /* Dark halo matches the canvas, so glyph outlines cut strokes out of the
+     background instead of glowing white behind light text. */
+  --edge-label-halo: var(--canvas);
+
+  --scrollbar-thumb: oklch(1 0 0 / 16%);
+  --scrollbar-thumb-hover: oklch(1 0 0 / 28%);
+}
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: 'Inter Variable', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', 'Cascadia Mono', Consolas, monospace;
+
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-canvas: var(--canvas);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 2px);
+  --radius-2xl: calc(var(--radius) + 4px);
+  --radius-3xl: calc(var(--radius) + 6px);
+  --radius-4xl: calc(var(--radius) + 8px);
+}
+
+/* ------------------------------------------------------------------ */
+/* Base                                                                */
+/* ------------------------------------------------------------------ */
+
+* {
+  border-color: var(--border);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
+}
+
+::selection {
+  background: color-mix(in oklch, var(--primary) 24%, transparent);
+}
+
+:root {
+  caret-color: var(--primary);
+  accent-color: var(--primary);
+}
+
+/* A visible ring on anything the design system does not style itself. */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Scrollbars: thin, themed, and out of the way until the area is hovered. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border: 3px solid transparent;
+  border-radius: 9999px;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+/* Number inputs in the inspector keep their steppers off until focused. */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+input[type="number"]:focus::-webkit-inner-spin-button,
+input[type="number"]:hover::-webkit-inner-spin-button {
+  opacity: 1;
+}
+
+input[type="search"]::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+/* react-colorful ships card-shaped defaults (fixed 200×200, 24px sliders);
+   these reshape it to fill its popover and match the inspector's controls. */
+.accent-picker .react-colorful {
+  gap: 0;
+  width: 100%;
+  height: auto;
+}
+
+.accent-picker .react-colorful__saturation {
+  flex-grow: 0;
+  height: 144px;
+  border-bottom-width: 0;
+  border-radius: var(--radius-xl);
+}
+
+.accent-picker .react-colorful__hue,
+.accent-picker .react-colorful__last-control {
+  margin-top: 8px;
+  height: 12px;
+  border-radius: 9999px;
+}
+
+.accent-picker .react-colorful__pointer {
+  width: 18px;
+  height: 18px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* React Flow                                                          */
+/* ------------------------------------------------------------------ */
+
+.react-flow {
+  --xy-background-color: var(--canvas);
+  background-color: var(--canvas);
+}
+
+.react-flow__attribution {
+  display: none;
+}
+
+.react-flow__node {
+  font-family: var(--font-sans);
+}
+
+/* Some brand marks ship with hard-coded black or white layers. On a dark
+   template card, a small neutral plate keeps the mark recognizable without
+   flattening its original artwork into a single color. */
+.dark-node-icon-plate {
+  display: flex;
+  width: 56px;
+  height: 56px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid oklch(0.86 0.01 250 / 0.9);
+  border-radius: 14px;
+  background: oklch(0.98 0.005 250);
+  box-shadow:
+    0 1px 2px rgb(15 23 42 / 0.2),
+    inset 0 0 0 1px rgb(255 255 255 / 0.6);
+}
+
+.dark-node-icon-plate > svg {
+  filter: drop-shadow(0 0 1px rgb(15 23 42 / 0.35));
+}
+
+/* "group" collides with React Flow's built-in node type, whose base styles
+   paint a second border behind our custom frame — strip it. */
+.react-flow__node-group,
+.react-flow__node-group.selected,
+.react-flow__node-group:focus,
+.react-flow__node-group:focus-visible {
+  border: none;
+}
+
+.react-flow__node.selected .node-card {
+  box-shadow:
+    0 0 0 2px var(--canvas),
+    0 0 0 4px var(--ring);
+}
+
+/* Connection points stay hidden until they are relevant. Side handles are
+   affordances; `.surface-handle` is a whole-node drop target that must stay
+   inert until a connection drag is already underway. */
+.react-flow__handle {
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--card);
+  background: var(--primary);
+  opacity: 0;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+.react-flow__node:hover .react-flow__handle:not(.surface-handle),
+.react-flow__node.selected .react-flow__handle:not(.surface-handle) {
+  opacity: 1;
+}
+
+.react-flow__handle:hover:not(.surface-handle) {
+  transform: scale(1.35);
+}
+
+.react-flow__handle-connecting:not(.surface-handle),
+.react-flow__handle-valid:not(.surface-handle) {
+  opacity: 1;
+  background: var(--primary);
+}
+
+.react-flow__handle.surface-handle {
+  border: none;
+  background: transparent;
+  opacity: 0;
+  transform: none !important;
+  pointer-events: none;
+}
+
+/* Whole-card drop targets only take pointer events while a connection is
+   being dragged (new connection or re-dragged edge endpoint). */
+body.connecting-edge .react-flow__handle.surface-handle {
+  pointer-events: auto;
+}
+
+.react-flow__edge:focus,
+.react-flow__edge:focus-visible {
+  outline: none;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  filter: drop-shadow(0 0 3px color-mix(in oklch, var(--ring) 60%, transparent));
+}
+
+/* Edge labels always paint above nodes and edges, even selected/elevated ones
+   (React Flow raises elevated nodes to z-index ~1000). */
+.react-flow__edgelabel-renderer {
+  z-index: 4000;
+}
+
+/* White outline behind edge-label and node-text glyphs so they stay readable
+   over arrows, frames, and grid lines. Painted by a duplicate text layer
+   behind the real one; requires data-label + an inner <span>. */
+.edge-label::before,
+.halo-text::before {
+  content: attr(data-label);
+  position: absolute;
+  inset: 0;
+  -webkit-text-stroke: 3px var(--edge-label-halo, #fff);
+  color: transparent;
+  pointer-events: none;
+}
+
+.edge-label > span,
+.halo-text > span {
+  position: relative;
+}
+
+.react-flow__panel {
+  font-family: var(--font-sans);
+}
+
+.react-flow__selection {
+  background: color-mix(in oklch, var(--primary) 12%, transparent);
+  border: 1px solid var(--primary);
+  border-radius: 4px;
+}
+
+.react-flow__minimap-mask {
+  stroke: var(--border);
+  stroke-width: 1px;
+}
+
+/* Toasts sit under the top bar so they never cover the minimap. */
+[data-slot="toast-viewport"] {
+  top: 4.25rem;
+  bottom: auto;
+}
+
+/* Keep edges visible when the viewport is rasterised for image export. */
+.react-flow__viewport {
+  overflow: visible;
+}
