@@ -4,35 +4,82 @@ import { AssetPanel } from "@/components/flow/AssetPanel"
 import { Inspector } from "@/components/flow/inspector/Inspector"
 import { FlowCanvas } from "@/components/flow/FlowCanvas"
 import { TopBar } from "@/components/app/TopBar"
-import { loadStarterDoc } from "@/lib/templates"
 import { readStoredDocument, useStore } from "@/lib/store"
 import { useEditorShortcuts } from "@/hooks/use-editor-shortcuts"
 import { MOBILE_QUERY, useIsMobile } from "@/hooks/use-mobile"
 import { useTheme } from "@/hooks/use-theme"
 import { cn } from "@/lib/utils"
+import { clearProjectReferenceFromUrl, readSharedDocumentFromUrl } from "@/lib/share"
+import { startProjectSync, useProjectSync } from "@/lib/project-sync"
+import type { GraphDocument } from "@/lib/types"
+import { toast } from "@/components/ui/toast"
+
+function emptyDocument(): GraphDocument {
+  return { version: 1, title: "Untitled diagram", nodes: [], edges: [] }
+}
 
 function EditorLayout() {
   const [dark, setDark] = useTheme()
   const loadDocument = useStore((s) => s.loadDocument)
   const loadedRef = useRef(false)
+  const [documentReady, setDocumentReady] = useState(false)
   const isMobile = useIsMobile()
 
-  // Panels start closed on phones and small tablets.
   const [leftOpen, setLeftOpen] = useState(() => !window.matchMedia(MOBILE_QUERY).matches)
   const [rightOpen, setRightOpen] = useState(() => !window.matchMedia(MOBILE_QUERY).matches)
 
   useEditorShortcuts()
 
-  // Restore the last session, or seed the canvas with the reference diagram.
   useEffect(() => {
     if (loadedRef.current) return
     loadedRef.current = true
-    if (useStore.getState().nodes.length > 0) return
-    loadDocument(readStoredDocument() ?? loadStarterDoc(), { resetHistory: true })
+
+    void (async () => {
+      try {
+        const shared = await readSharedDocumentFromUrl()
+        if (shared.kind === "found") {
+          useProjectSync.getState().prepareImportedProject(shared.id)
+          loadDocument(shared.document, { resetHistory: true })
+          clearProjectReferenceFromUrl()
+          toast.add({
+            type: "success",
+            title: "Shared diagram imported",
+            description: "This copy is now saved in this browser.",
+          })
+          return
+        }
+        if (shared.kind === "missing") {
+          useProjectSync.getState().detachProject()
+          loadDocument(emptyDocument(), { resetHistory: true })
+          clearProjectReferenceFromUrl()
+          toast.add({
+            type: "warning",
+            title: "Shared diagram not found",
+            description: "We started a new local diagram instead.",
+          })
+          return
+        }
+      } catch (error) {
+        useProjectSync.getState().detachProject()
+        clearProjectReferenceFromUrl()
+        toast.add({
+          type: "error",
+          title: "Could not open the shared diagram",
+          description:
+            error instanceof Error ? error.message : "The link may be incomplete or damaged.",
+        })
+      }
+      loadDocument(readStoredDocument() ?? emptyDocument(), { resetHistory: true })
+    })().finally(() => {
+      setDocumentReady(true)
+    })
   }, [loadDocument])
 
-  // On phones and small tablets the panels overlay the canvas instead of
-  // splitting it, so entering that mode closes both to reveal the canvas.
+  useEffect(() => {
+    if (!documentReady) return
+    return startProjectSync()
+  }, [documentReady])
+
   const overlayPanels = isMobile
 
   useEffect(() => {

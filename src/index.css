@@ -436,6 +436,22 @@ body.connecting-edge .react-flow__handle.surface-handle {
   border-radius: 4px;
 }
 
+.smart-guide-line,
+.smart-gap-guide line {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.smart-guide-line {
+  stroke-dasharray: 4 4;
+}
+
+.smart-gap-guide line {
+  stroke-width: 1.25;
+}
+
 .react-flow__minimap-mask {
   stroke: var(--border);
   stroke-width: 1px;

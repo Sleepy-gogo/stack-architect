@@ -10,6 +10,7 @@ import {
   PanelLeftIcon,
   PanelRightIcon,
   Redo2Icon,
+  Share2Icon,
   ShapesIcon,
   SunIcon,
   Undo2Icon,
@@ -32,6 +33,26 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { toast } from "@/components/ui/toast"
+import { createSharedProject, sharedProjectUrl } from "@/lib/share"
+import { useProjectSync } from "@/lib/project-sync"
+
+async function copyText(value: string): Promise<void> {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value)
+    return
+  }
+
+  const input = document.createElement("textarea")
+  input.value = value
+  input.setAttribute("readonly", "")
+  input.style.position = "fixed"
+  input.style.opacity = "0"
+  document.body.append(input)
+  input.select()
+  const copied = document.execCommand("copy")
+  input.remove()
+  if (!copied) throw new Error("Your browser blocked clipboard access.")
+}
 
 export function TopBar({
   dark,
@@ -50,25 +71,27 @@ export function TopBar({
 }) {
   const title = useStore((s) => s.title)
   const setTitle = useStore((s) => s.setTitle)
-  const saveStatus = useStore((s) => s.saveStatus)
   const undo = useStore((s) => s.undo)
   const redo = useStore((s) => s.redo)
   const canUndo = useStore((s) => s.past.length > 0)
   const canRedo = useStore((s) => s.future.length > 0)
-  const nodes = useStore((s) => s.nodes)
-  const gridSize = useStore((s) => s.gridSize)
   const exportDocument = useStore((s) => s.exportDocument)
   const loadDocument = useStore((s) => s.loadDocument)
+  const projectId = useProjectSync((s) => s.project?.id ?? null)
+  const attachProject = useProjectSync((s) => s.attachProject)
+  const syncNow = useProjectSync((s) => s.syncNow)
   const { fitView } = useReactFlow()
 
   const fileRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
+  const [sharing, setSharing] = useState(false)
   const [exportGrid, setExportGrid] = useState(false)
   const [exportTransparent, setExportTransparent] = useState(false)
 
   const handleExportImage = async (format: "png" | "svg") => {
     setBusy(true)
     try {
+      const { nodes, title, gridSize } = useStore.getState()
       await exportImage(nodes, title, format, {
         grid: exportGrid,
         transparent: exportTransparent,
@@ -109,6 +132,37 @@ export function TopBar({
     }
   }
 
+  const handleShare = async () => {
+    setSharing(true)
+    try {
+      let url: string
+      if (projectId) {
+        await syncNow(true)
+        url = sharedProjectUrl(projectId)
+      } else {
+        const document = exportDocument()
+        const project = await createSharedProject(document)
+        attachProject(project.id, project.editToken, document)
+        url = project.url
+      }
+      await copyText(url)
+      toast.add({
+        type: "success",
+        title: "Share link copied",
+        description: "Anyone with the link can open this snapshot.",
+      })
+    } catch (error) {
+      toast.add({
+        type: "error",
+        title: "Could not create a share link",
+        description:
+          error instanceof Error ? error.message : "The diagram could not be copied to a link.",
+      })
+    } finally {
+      setSharing(false)
+    }
+  }
+
   return (
     <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background px-2 sm:px-3">
       <div className="flex min-w-0 items-center gap-2">
@@ -128,7 +182,7 @@ export function TopBar({
         <TitleField value={title} onChange={setTitle} />
       </div>
 
-      <SaveStatus status={saveStatus} />
+      <SaveStatus />
 
       <div className="ml-auto flex shrink-0 items-center gap-1">
         <IconButton
@@ -159,6 +213,22 @@ export function TopBar({
         >
           {dark ? <SunIcon className="size-4" /> : <MoonIcon className="size-4" />}
         </IconButton>
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={sharing}
+          onClick={handleShare}
+          className="ml-1 rounded-xl px-2.5"
+        >
+          {sharing ? (
+            <LoaderIcon className="size-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <Share2Icon className="size-4" aria-hidden="true" />
+          )}
+          <span className="hidden sm:inline">{sharing ? "Saving…" : "Share"}</span>
+        </Button>
 
         <input
           ref={fileRef}

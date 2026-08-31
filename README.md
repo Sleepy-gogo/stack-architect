@@ -1,82 +1,110 @@
 <h1 style="text-align:center">Stack Architect</h1>
 
-![preview](public/preview.png)
+![Stack Architect editor](public/preview.png)
 
-<i style="text-align:center; display:block;">A browser-based editor for tech stack diagrams.</i>
-
-Drag services onto a canvas, group them into layers, draw labeled connections between them, and export the result as PNG or SVG. Everything runs client side with no account needed.
+Stack Architect is a browser-based editor for tech stack diagrams. Drag services onto a canvas, group them into layers, connect them, and export the result as PNG, SVG, or JSON. Diagram editing and local persistence work without an account. Optional sharing uses Turso.
 
 ## Features
 
-- **Real brand icons.** Currently shipping several hundred services (Vercel, Postgres, Redis, Cloudflare, ...) with icons from [svgl](https://svgl.app) via `@ridemountainpig/svgl-react`.
+- Several hundred brand icons from [svgl](https://svgl.app), with a curated catalog for common services.
+- Tech cards, resizable group frames, and text notes.
+- Connections that choose sensible endpoints and keep labels clear of nodes. Endpoints can also be pinned manually.
+- Dagre auto-layout for arranging a rough diagram into layers.
+- Undo and redo with 60 snapshots, copy and paste, multi-select, keyboard shortcuts, and grid snapping.
+- Alt-drag duplication plus Ctrl-held alignment and equal-spacing guides.
+- Local autosave, JSON import, and PNG, SVG, or JSON export.
+- Short share links with queued server sync for the browser that created the link.
 
-- **Three node types.** Tech cards for services, resizable group frames for layers, and free-standing text notes.
+## Sharing
 
-- **Edges that mostly take care of themselves.** Connections pick the geometrically best of the four sides of a card and re-evaluate as nodes move, then place their labels clear of crossings. You can pin endpoints manually when you disagree with the choice.
+Selecting Share creates a project in Turso and copies a link such as `/?project=abc123DEF456`.
 
-- **Auto layout.** Dagre arranges a messy canvas into a layered diagram using the known node dimensions.
+The browser that creates the project stores a private edit token in localStorage. It queues local changes and syncs them once per minute. The save indicator shows whether changes are local, pending, syncing, or synced. Its refresh button sends changes immediately.
 
-- **A real editing experience.** Undo/redo (60 snapshots), copy/cut/paste, duplicate, snap to grid, alignment tools, multi-select, keyboard shortcuts, etc.
+A recipient only receives the public project ID. Opening the link imports the latest server copy into localStorage, removes the query parameter, and leaves the recipient with an independent local diagram. Recipients never receive the edit token and cannot overwrite the shared source.
 
-- **Autosave and export.** The document persists to localStorage on every change. Export to PNG, SVG, or JSON, and import JSON back. Stateful sharing links may come in the future.
+The API accepts diagrams up to 1 MB. It allows 10 new projects per client per minute and 30 updates per client and project per minute.
 
-## Stack
+Rate-limit counters live in Turso, so they apply across server instances. The server stores an HMAC fingerprint of each client address rather than the address itself.
 
-- Vite + React 19 + TypeScript
-- [React Flow](https://reactflow.dev) (`@xyflow/react`) for the canvas
-- Zustand for state: one store holds nodes, edges, selection, tool mode, history, and persistence (`src/lib/store.ts`)
-- Tailwind v4 with shadcn/ui components
-- React Compiler enabled through Babel
+## Tech stack
 
-## Getting started
+- Vite, React 19, and TypeScript
+- Nitro server routes
+- Turso through `@tursodatabase/serverless`
+- [React Flow](https://reactflow.dev) for the canvas
+- Zustand for editor state, history, and persistence
+- Tailwind CSS v4 and shadcn/ui components
+- React Compiler through Babel
+
+## Local development
+
+Install dependencies and start the dev server:
 
 ```bash
 npm install
+cp .env.example .env
 npm run dev
 ```
 
-Other scripts:
+Set the following variables in `.env` to enable sharing:
 
-```bash
-npm run build          # tsc -b && vite build; this is also the typecheck
-npm run lint           # oxlint
+```env
+TURSO_DATABASE_URL=libsql://your-database-your-org.turso.io
+TURSO_AUTH_TOKEN=your-database-token
 ```
 
-There is no test runner yet, so verify changes with lint plus build.
+Keep both values on the server. Do not expose them through `VITE_` variables.
+
+The share API creates and upgrades its tables on first use. [`server/schema.sql`](server/schema.sql) contains the base schema if you prefer to create it yourself.
+
+## Checks
+
+```bash
+npm run lint
+npm run build
+```
+
+`npm run build` also runs the TypeScript compiler. The repository does not have an automated test runner yet.
 
 ## Project layout
 
-```
+```text
 src/
   components/
-    app/      top bar
-    flow/     canvas, node renderers, inspector, asset palette, panels
-    ui/       shadcn/ui primitives
+    app/                 top bar and editor shell
+    flow/                canvas, nodes, inspector, and asset palette
+    ui/                  shared interface components
+  hooks/                 editor shortcuts, theme, and responsive helpers
   lib/
-    store.ts            single zustand store, undo/redo, localStorage
-    types.ts            node/edge data shapes, document serialization
-    catalog.ts          curated tech list + categories
-    catalog-generated.ts  generated from svgl (do not edit by hand)
-    icons.ts            slug → icon resolution, alias fixes
-    layout.ts           dagre auto-layout
-    export.ts           PNG / SVG / JSON export and import
-    templates.ts        starter document
-  hooks/
-    use-editor-shortcuts.ts
+    store.ts             diagram state, undo and redo, localStorage
+    project-sync.ts      queued creator sync and edit-token persistence
+    share.ts             public import links and share API client
+    smart-guides.ts      alignment and equal-spacing calculations
+    types.ts             diagram serialization types
+    catalog.ts           curated technology catalog
+    catalog-generated.ts generated svgl catalog
+    export.ts            PNG, SVG, and JSON import and export
+server/
+  api/                   Nitro share endpoints
+  utils/                 Turso connection, schema migration, and rate limits
+  schema.sql             base Turso schema
 ```
 
-## Working on the icon catalog
+## Updating the icon catalog
 
-The palette list comes from two places. Curated entries in `src/lib/catalog.ts` win; everything else is generated by scanning every component in `@ridemountainpig/svgl-react`, with metadata pulled from the public svgl API. After bumping the svgl package:
+Curated entries in `src/lib/catalog.ts` take priority. The generated catalog scans `@ridemountainpig/svgl-react` and reads metadata from the svgl API.
+
+After updating the svgl package, regenerate the catalog:
 
 ```bash
 node scripts/generate-svgl-catalog.mjs
 ```
 
-If an icon resolves under a different name than our slug (say `drizzle` vs `drizzleorm`), add it to the alias maps in `src/lib/icons.ts` rather than renaming slugs across the catalog.
+If an icon uses a different export name than its catalog slug, add the mapping in `src/lib/icons.ts`. Do not rename the slug across the catalog.
 
-## Conventions worth knowing
+## Repository notes
 
-- TypeScript runs with `verbatimModuleSyntax` and `erasableSyntaxOnly`: type-only imports need `import type`, and enums, namespaces, and parameter properties don't compile.
-- Both `package-lock.json` and `bun.lock` are committed. If you change dependencies with one package manager, regenerate the other lockfile too.
-- To reset local dev state, delete the `tech-stack-architect:*` keys in localStorage.
+- TypeScript uses `verbatimModuleSyntax` and `erasableSyntaxOnly`. Use `import type` for type-only imports.
+- Commit both `package-lock.json` and `bun.lock` when dependencies change.
+- To reset local editor state, remove the `tech-stack-architect:*` keys from localStorage.

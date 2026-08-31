@@ -80,7 +80,7 @@ export type Tool = "select" | "pan" | "frame" | "text"
 
 type Snapshot = { nodes: AppNode[]; edges: AppEdge[] }
 
-export type SaveStatus = "saved" | "saving" | "idle"
+export type SaveStatus = "saved" | "saving" | "error" | "idle"
 
 type State = {
   title: string
@@ -116,6 +116,8 @@ type State = {
   deleteNode: (id: string) => void
   deleteSelection: () => void
   duplicateNode: (id: string) => void
+  duplicateSelectionForDrag: (draggedIds: string[]) => void
+  nudgeDraggedNodes: (draggedIds: string[], dx: number, dy: number) => void
 
   /** Move nodes into a frame (or out to the canvas), keeping their visual position. */
   reparentNodes: (moves: { id: string; parentId: string | null }[]) => void
@@ -173,7 +175,7 @@ function scheduleSave(get: () => State, set: (patch: Partial<State>) => void) {
       set({ saveStatus: "saved" })
     } catch {
       // Storage can be full or blocked (private mode); the canvas still works.
-      set({ saveStatus: "idle" })
+      set({ saveStatus: "error" })
     }
   }, 500)
 }
@@ -185,7 +187,6 @@ export function readStoredDocument(): GraphDocument | null {
     if (!raw) return null
     const doc = JSON.parse(raw) as GraphDocument
     if (!Array.isArray(doc.nodes) || !Array.isArray(doc.edges)) return null
-    if (doc.nodes.length === 0) return null
     return doc
   } catch {
     return null
@@ -446,6 +447,71 @@ export const useStore = create<State>((set, get) => {
         selectedNodeId: newId,
         selectedEdgeId: null,
       })
+    },
+
+    duplicateSelectionForDrag: (draggedIds) => {
+      if (draggedIds.length === 0) return
+      const { nodes, edges } = get()
+      const roots = new Set(draggedIds)
+      const copiedIds = new Set(roots)
+
+      let grew = true
+      while (grew) {
+        grew = false
+        for (const node of nodes) {
+          if (copiedIds.has(node.id) || !node.parentId || !copiedIds.has(node.parentId)) continue
+          copiedIds.add(node.id)
+          grew = true
+        }
+      }
+
+      const copiedNodes = nodes.filter((node) => copiedIds.has(node.id))
+      if (copiedNodes.length === 0) return
+
+      if (!gestureSnapshot) gestureSnapshot = { nodes, edges }
+
+      const idMap = new Map<string, string>()
+      for (const node of copiedNodes) idMap.set(node.id, genId(node.type ?? "node"))
+
+      const clones = copiedNodes.map((node) => ({
+        ...node,
+        id: idMap.get(node.id) ?? node.id,
+        parentId: node.parentId ? (idMap.get(node.parentId) ?? node.parentId) : undefined,
+        position: { ...node.position },
+        data: { ...node.data },
+        selected: false,
+        dragging: false,
+      }))
+      const clonedEdges = edges
+        .filter((edge) => copiedIds.has(edge.source) && copiedIds.has(edge.target))
+        .map((edge) => ({
+          ...edge,
+          id: genId("e"),
+          source: idMap.get(edge.source) ?? edge.source,
+          target: idMap.get(edge.target) ?? edge.target,
+          data: edge.data ? { ...edge.data } : edge.data,
+          selected: false,
+        }))
+
+      set({
+        nodes: [...nodes, ...orderParentsFirst(clones)],
+        edges: [...edges, ...clonedEdges],
+      })
+    },
+
+    nudgeDraggedNodes: (draggedIds, dx, dy) => {
+      if ((!dx && !dy) || draggedIds.length === 0) return
+      const moved = new Set(draggedIds)
+      set((state) => ({
+        nodes: state.nodes.map((node) =>
+          moved.has(node.id) && !(node.parentId && moved.has(node.parentId))
+            ? {
+                ...node,
+                position: { x: node.position.x + dx, y: node.position.y + dy },
+              }
+            : node,
+        ),
+      }))
     },
 
     reparentNodes: (moves) => {

@@ -134,7 +134,10 @@ export function AlignBar() {
           <MagnetIcon className="size-3.5" />
           Snap
         </TooltipTrigger>
-        <TooltipContent>{snapToGrid ? "Snapping is on" : "Snapping is off"}</TooltipContent>
+        <TooltipContent>
+          {snapToGrid ? "Grid snapping is on. " : "Grid snapping is off. "}
+          Hold Ctrl while dragging for alignment and equal-spacing guides.
+        </TooltipContent>
       </Tooltip>
 
       <div className="flex h-8 items-center gap-1.5 rounded-lg pl-1.5 pr-1 text-xs text-muted-foreground">

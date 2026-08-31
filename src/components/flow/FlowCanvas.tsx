@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   Background,
   BackgroundVariant,
@@ -28,6 +28,8 @@ import { AlignBar } from "./AlignBar"
 import { LayersPanel } from "./LayersPanel"
 import { CanvasEmptyState } from "./CanvasEmptyState"
 import { ConnectionFlag } from "./ConnectionFlag"
+import { SmartGuides } from "./SmartGuides"
+import { computeSmartSnap, type SmartGuide } from "@/lib/smart-guides"
 
 const nodeTypes = {
   tech: TechNode,
@@ -40,8 +42,11 @@ const edgeTypes = {
 }
 
 export function FlowCanvas() {
-  const { screenToFlowPosition, fitView } = useReactFlow()
+  const { screenToFlowPosition, fitView, getZoom } = useReactFlow()
   const hasFitted = useRef(false)
+  const lastSmartSnap = useRef<{ ids: string[]; dx: number; dy: number } | null>(null)
+  const [controlPressed, setControlPressed] = useState(false)
+  const [smartGuides, setSmartGuides] = useState<SmartGuide[]>([])
 
   const nodes = useStore((s) => s.nodes)
   const edges = useStore((s) => s.edges)
@@ -52,6 +57,8 @@ export function FlowCanvas() {
   const addGroupNode = useStore((s) => s.addGroupNode)
   const addTextNode = useStore((s) => s.addTextNode)
   const reparentNodes = useStore((s) => s.reparentNodes)
+  const duplicateSelectionForDrag = useStore((s) => s.duplicateSelectionForDrag)
+  const nudgeDraggedNodes = useStore((s) => s.nudgeDraggedNodes)
   const selectNode = useStore((s) => s.selectNode)
   const selectEdge = useStore((s) => s.selectEdge)
   const clearSelection = useStore((s) => s.clearSelection)
@@ -66,6 +73,31 @@ export function FlowCanvas() {
     const timeout = window.setTimeout(() => fitView({ padding: 0.18, duration: 0 }), 60)
     return () => window.clearTimeout(timeout)
   }, [fitView, nodes.length])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Control") setControlPressed(true)
+    }
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.key !== "Control") return
+      lastSmartSnap.current = null
+      setControlPressed(false)
+      setSmartGuides([])
+    }
+    const onBlur = () => {
+      lastSmartSnap.current = null
+      setControlPressed(false)
+      setSmartGuides([])
+    }
+    window.addEventListener("keydown", onKeyDown)
+    window.addEventListener("keyup", onKeyUp)
+    window.addEventListener("blur", onBlur)
+    return () => {
+      window.removeEventListener("keydown", onKeyDown)
+      window.removeEventListener("keyup", onKeyUp)
+      window.removeEventListener("blur", onBlur)
+    }
+  }, [])
 
   const onDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -86,7 +118,42 @@ export function FlowCanvas() {
     )
   }
 
+  const onNodeDragStart: OnNodeDrag<AppNode> = (event, node, dragged) => {
+    if (tool !== "select" || !("altKey" in event) || !event.altKey) return
+    duplicateSelectionForDrag(dragged.length > 0 ? dragged.map((item) => item.id) : [node.id])
+  }
+
+  const onNodeDrag: OnNodeDrag<AppNode> = (event, node, dragged) => {
+    const ctrlKey = "ctrlKey" in event && event.ctrlKey
+    if (tool !== "select" || (!ctrlKey && !controlPressed)) {
+      lastSmartSnap.current = null
+      if (smartGuides.length > 0) setSmartGuides([])
+      return
+    }
+
+    const draggedIds = dragged.length > 0 ? dragged.map((item) => item.id) : [node.id]
+    const draggedById = new Map(
+      (dragged.length > 0 ? dragged : [node]).map((item) => [item.id, item]),
+    )
+    const proposedNodes = useStore
+      .getState()
+      .nodes.map((item) => draggedById.get(item.id) ?? item)
+    const snap = computeSmartSnap(proposedNodes, draggedIds, 8 / getZoom())
+    if (!snap) {
+      lastSmartSnap.current = null
+      if (smartGuides.length > 0) setSmartGuides([])
+      return
+    }
+    lastSmartSnap.current = { ids: draggedIds, dx: snap.dx, dy: snap.dy }
+    nudgeDraggedNodes(draggedIds, snap.dx, snap.dy)
+    setSmartGuides(snap.guides)
+  }
+
   const onNodeDragStop: OnNodeDrag<AppNode> = (_e, _node, dragged) => {
+    const finalSnap = lastSmartSnap.current
+    lastSmartSnap.current = null
+    if (finalSnap) nudgeDraggedNodes(finalSnap.ids, finalSnap.dx, finalSnap.dy)
+    setSmartGuides([])
     if (dragged.length === 0 || tool !== "select") return
     const nodes = useStore.getState().nodes
     const byId = new Map(nodes.map((n) => [n.id, n]))
@@ -157,6 +224,8 @@ export function FlowCanvas() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onPaneClick={onPaneClick}
+        onNodeDragStart={onNodeDragStart}
+        onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
         defaultEdgeOptions={{ type: "tech", data: { style: "solid" as const } }}
         connectionLineComponent={ConnectionLine}
@@ -167,7 +236,7 @@ export function FlowCanvas() {
         fitViewOptions={{ padding: 0.18 }}
         minZoom={0.15}
         maxZoom={2.5}
-        snapToGrid={snapToGrid}
+        snapToGrid={snapToGrid && !controlPressed}
         snapGrid={[gridSize, gridSize]}
         deleteKeyCode={null}
         selectionMode={SelectionMode.Partial}
@@ -181,6 +250,7 @@ export function FlowCanvas() {
         aria-label="Diagram canvas"
       >
         <ConnectionFlag />
+        {smartGuides.length > 0 ? <SmartGuides guides={smartGuides} /> : null}
         <Background
           id="minor"
           variant={BackgroundVariant.Lines}
