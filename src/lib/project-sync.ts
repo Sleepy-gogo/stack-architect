@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { updateSharedProject } from "./share"
-import { useStore } from "./store"
+import { serializeDocument, useStore } from "./store"
 import type { GraphDocument } from "./types"
 
 const OWNED_PROJECT_KEY = "tech-stack-architect:owned-project"
@@ -160,13 +160,10 @@ export const useProjectSync = create<ProjectSyncState>((set, get) => ({
 
 export function startProjectSync(): () => void {
   const unsubscribe = useStore.subscribe((state, previous) => {
-    if (
-      state.title === previous.title &&
-      state.nodes === previous.nodes &&
-      state.edges === previous.edges
-    ) {
-      return
-    }
+    // Selection, dragging, and measured layout values belong to React Flow's
+    // UI state, not the document sent to the server.
+    if (sameDocument(serializeDocument(state), serializeDocument(previous))) return
+
     const sync = useProjectSync.getState()
     if (!sync.project) return
     documentVersion += 1

@@ -154,6 +154,18 @@ type State = {
   clearAll: () => void
 }
 
+type DocumentState = Pick<State, "title" | "nodes" | "edges">
+
+export function serializeDocument(state: DocumentState): GraphDocument {
+  const { title, nodes, edges } = state
+  return {
+    version: 1,
+    title,
+    nodes: nodes.map(({ selected: _sel, dragging: _drag, measured: _m, ...n }) => n as AppNode),
+    edges: edges.map(({ selected: _sel, ...e }) => e as AppEdge),
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* Persistence                                                         */
 /* ------------------------------------------------------------------ */
@@ -824,13 +836,7 @@ export const useStore = create<State>((set, get) => {
     },
 
     exportDocument: () => {
-      const { nodes, edges, title } = get()
-      return {
-        version: 1,
-        title,
-        nodes: nodes.map(({ selected: _sel, dragging: _drag, measured: _m, ...n }) => n as AppNode),
-        edges: edges.map(({ selected: _sel, ...e }) => e as AppEdge),
-      }
+      return serializeDocument(get())
     },
 
     clearAll: () =>
