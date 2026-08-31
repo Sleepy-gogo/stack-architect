@@ -457,10 +457,10 @@ body.connecting-edge .react-flow__handle.surface-handle {
   stroke-width: 1px;
 }
 
-/* Toasts sit under the top bar so they never cover the minimap. */
+/* Keep toasts in the bottom-right corner. */
 [data-slot="toast-viewport"] {
-  top: 4.25rem;
-  bottom: auto;
+  top: auto;
+  bottom: 1rem;
 }
 
 /* Keep edges visible when the viewport is rasterised for image export. */
