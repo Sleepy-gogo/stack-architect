@@ -2,14 +2,13 @@ import { useLayoutEffect, useRef, useState } from "react"
 import {
   EdgeLabelRenderer,
   Position,
-  getSmoothStepPath,
   useReactFlow,
   type EdgeProps,
 } from "@xyflow/react"
 import { useStore } from "@/lib/store"
 import { resolveSwatch } from "@/lib/swatches"
 import { EDGE_DASHED, EDGE_SOLID, type TechEdgeData } from "@/lib/types"
-import { anchorRect, findConnectableAt } from "@/lib/geometry"
+import { absoluteRect, anchorRect, findConnectableAt, type Rect } from "@/lib/geometry"
 import {
   autoSide,
   projectToPerimeter,
@@ -19,6 +18,7 @@ import {
   snapToSide,
 } from "@/lib/edge-anchors"
 import { findAutoLabelSpot } from "@/lib/edge-labels"
+import { getObstacleAvoidingPath } from "@/lib/orthogonal-route"
 
 const SIBLING_SPREAD = 18
 
@@ -122,15 +122,38 @@ export function TechEdge({
     }
   }
 
-  // Right angles read as a system diagram; bezier curves read as a mind map.
-  const [path, labelX, labelY] = getSmoothStepPath({
-    sourceX: sx,
-    sourceY: sy,
-    targetX: tx,
-    targetY: ty,
+  const endpointFamily = new Set([source, target])
+  for (const endpointId of [source, target]) {
+    let parentId = byId.get(endpointId)?.parentId
+    const seen = new Set<string>()
+    while (parentId && !seen.has(parentId)) {
+      seen.add(parentId)
+      endpointFamily.add(parentId)
+      parentId = byId.get(parentId)?.parentId
+    }
+  }
+  const routeClearance = 16
+  const obstacles: Rect[] = nodes.flatMap((node) => {
+    if (node.hidden || node.type === "text" || endpointFamily.has(node.id)) return []
+    const rect = absoluteRect(node, byId)
+    return [
+      {
+        x: rect.x - routeClearance,
+        y: rect.y - routeClearance,
+        w: rect.w + routeClearance * 2,
+        h: rect.h + routeClearance * 2,
+      },
+    ]
+  })
+
+  // Right angles read as a system diagram. Candidate lanes run around every
+  // unrelated card and frame instead of relying on a midpoint-only router.
+  const [path, labelX, labelY] = getObstacleAvoidingPath({
+    source: { x: sx, y: sy },
+    target: { x: tx, y: ty },
     sourcePosition: sp,
     targetPosition: tp,
-    borderRadius: 10,
+    obstacles,
   })
 
   /* ---------- Label auto-placement ---------- */

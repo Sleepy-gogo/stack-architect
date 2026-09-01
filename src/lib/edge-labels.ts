@@ -36,7 +36,7 @@ function collectObstacles(nodes: AppNode[]): Obstacle[] {
     obstacles.push({ rect: absoluteRect(n, byId), kind: "node" })
   }
   for (const n of nodes) {
-    if (n.hidden || n.type !== "group" || !n.parentId) continue
+    if (n.hidden || n.type !== "group") continue
     obstacles.push({ rect: absoluteRect(n, byId), kind: "border" })
   }
   return obstacles
