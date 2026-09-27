@@ -1,6 +1,7 @@
 import dagre from "@dagrejs/dagre"
-import { nodeSize, rectsIntersect, type Rect } from "./geometry"
-import { type AppEdge, type AppNode, type GraphDocument } from "./types"
+import { layoutEdgeAnchors } from "./layout-anchors.js"
+import { nodeSize, rectsIntersect, type Rect } from "./geometry.js"
+import { type AppEdge, type AppNode, type GraphDocument } from "./types.js"
 
 const GRID = 8
 const NODE_GAP = 56
@@ -421,18 +422,6 @@ function packComponents(layouts: LayoutItem[][]): LayoutItem[] {
   return normalize(allItems)
 }
 
-function resetEdgeGeometry(edge: AppEdge): AppEdge {
-  const data = edge.data ?? {}
-  const {
-    labelX: _labelX,
-    labelY: _labelY,
-    sourcePoint: _sourcePoint,
-    targetPoint: _targetPoint,
-    ...rest
-  } = data
-  return { ...edge, data: rest }
-}
-
 /**
  * Rebuild the top-level composition from graph topology. Frames stay atomic,
  * strongly connected systems become compact 2D clusters, solid edges lead the
@@ -454,7 +443,7 @@ export function layoutDagre(doc: { nodes: AppNode[]; edges: AppEdge[] }): GraphD
 
   const roots = doc.nodes.filter((node) => !node.parentId && !node.hidden)
   if (roots.length === 0) {
-    return { version: 1, nodes: doc.nodes, edges: doc.edges.map(resetEdgeGeometry) }
+    return { version: 1, nodes: doc.nodes, edges: layoutEdgeAnchors(doc.nodes, doc.edges) }
   }
   const items: LayoutItem[] = roots.map((node) => {
     const { w, h } = nodeSize(node)
@@ -487,5 +476,5 @@ export function layoutDagre(doc: { nodes: AppNode[]; edges: AppEdge[] }): GraphD
     return position ? { ...node, position } : node
   })
 
-  return { version: 1, nodes, edges: doc.edges.map(resetEdgeGeometry) }
+  return { version: 1, nodes, edges: layoutEdgeAnchors(nodes, doc.edges) }
 }

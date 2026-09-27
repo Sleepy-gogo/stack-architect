@@ -116,10 +116,19 @@ async function consumeAllowance(
   scope: string,
   limit: number,
 ): Promise<ShareAllowance> {
+  return consumeFingerprintAllowance(await addressFingerprint(request, scope), limit, RATE_WINDOW_SECONDS)
+}
+
+// Fixed keys deliberately make MCP quotas global, independent of caller-supplied
+// IP headers, and keep the existing rate-limit table bounded to two MCP rows.
+export function consumeMcpAllowance(scope: "requests" | "creations", limit: number, windowSeconds: number): Promise<ShareAllowance> {
+  return consumeFingerprintAllowance(`mcp:${scope}`, limit, windowSeconds)
+}
+
+async function consumeFingerprintAllowance(fingerprint: string, limit: number, windowSeconds: number): Promise<ShareAllowance> {
   await ensureSchema()
   const now = Math.floor(Date.now() / 1000)
-  const windowStart = now - (now % RATE_WINDOW_SECONDS)
-  const fingerprint = await addressFingerprint(request, scope)
+  const windowStart = now - (now % windowSeconds)
   const row = (await database().get(
     `
       INSERT INTO share_rate_limits (fingerprint, window_start, count)
@@ -140,7 +149,7 @@ async function consumeAllowance(
   return {
     allowed: count <= limit,
     remaining: Math.max(0, limit - count),
-    retryAfter: RATE_WINDOW_SECONDS - (now - windowStart),
+    retryAfter: windowSeconds - (now - windowStart),
   }
 }
 

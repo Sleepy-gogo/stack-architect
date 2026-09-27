@@ -16,6 +16,8 @@ dist-ssr
 !.env.example
 .nitro
 .output
+.vercel
+/work/
 
 # Editor directories and files
 .vscode/*

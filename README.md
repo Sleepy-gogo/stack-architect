@@ -1,8 +1,10 @@
-<h1 style="text-align:center">Stack Architect</h1>
+# Stack Architect
 
 ![Stack Architect editor](public/preview.png)
 
-Stack Architect is a browser-based editor for tech stack diagrams. Drag services onto a canvas, group them into layers, connect them, and export the result as PNG, SVG, or JSON. Diagram editing and local persistence work without an account. Optional sharing uses Turso.
+Stack Architect is a browser editor for tech stack diagrams. Add services, group them into layers, connect them, and share an editable diagram. You can also export PNG, SVG, or JSON.
+
+The editor works without an account and saves changes locally. Turso provides optional project sharing. A remote MCP endpoint lets coding agents create diagrams from repositories.
 
 ## Features
 
@@ -14,6 +16,7 @@ Stack Architect is a browser-based editor for tech stack diagrams. Drag services
 - Alt-drag duplication plus Ctrl-held alignment and equal-spacing guides.
 - Local autosave, JSON import, and PNG, SVG, or JSON export.
 - Short share links with queued server sync for the browser that created the link.
+- Repository diagrams through MCP and the included `stack-architect` skill.
 
 ## Sharing
 
@@ -26,6 +29,66 @@ A recipient only receives the public project ID. Opening the link imports the la
 The API accepts diagrams up to 1 MB. It allows 10 new projects per client per minute and 30 updates per client and project per minute.
 
 Rate-limit counters live in Turso, so they apply across server instances. The server stores an HMAC fingerprint of each client address rather than the address itself.
+
+## MCP
+
+The MCP server exposes `search_architecture_icons` and `create_architecture_project` at `/api/mcp`. Your agent analyzes the repository, looks up exact icons from the editor's catalog, and sends a `GraphDocument` with styled relationships. Stack Architect validates it, arranges the nodes and connection points, saves it in Turso, and returns a project link. Icon search is read-only and does not consume the creation quota.
+
+The endpoint uses stateless Streamable HTTP and runs in the same Nitro deployment as the editor. Repository analysis stays with the agent; the server receives only the diagram.
+
+The endpoint is public. Connect to `https://stack.axelc.dev/api/mcp`; no API key, token, or account is required.
+
+### Set up with your agent
+
+Give your coding agent this prompt:
+
+> Set up the Stack Architect MCP and skill for me using https://raw.githubusercontent.com/Sleepy-gogo/stack-architect/main/mcp-instructions.md
+
+The [setup instructions](mcp-instructions.md) cover client configuration, skill installation, and a connection check. They use the hosted endpoint by default; provide another URL if you host your own instance.
+
+### Manual setup
+
+For Codex, add this to your user-level `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.stack_architect]
+url = "https://stack.axelc.dev/api/mcp"
+```
+
+Copy [skills/stack-architect](skills/stack-architect) into `~/.agents/skills/stack-architect`, the [documented user-level skills directory](https://learn.chatgpt.com/docs/build-skills), then restart the agent session. If your client already loads the skill from another user directory, update that copy instead of installing a duplicate. The skill is available from any repository:
+
+> Use $stack-architect to analyze this repository and create an editable architecture diagram.
+
+Other MCP clients can use the same URL with Streamable HTTP and authentication set to none. See the [Codex MCP documentation](https://learn.chatgpt.com/docs/extend/mcp) for its configuration options.
+
+### Host your own server
+
+Alongside the Turso credentials described below, configure:
+
+```env
+STACK_ARCHITECT_PUBLIC_URL=https://your-stack-architect.vercel.app
+```
+
+Use the editor's HTTPS origin for `STACK_ARCHITECT_PUBLIC_URL`, without a path, query, or fragment. For local development, `http://localhost:5173` is also accepted. The endpoint stays disabled until the public URL is configured.
+
+On Vercel, set the public URL and Turso credentials as server environment variables, then deploy. Clients only need the endpoint URL. Keep Turso credentials private.
+
+### Results and limits
+
+The tool returns `projectId`, `url`, and `editing: "local-copy"`. The link opens an editable copy with the same sharing behavior described above. Anyone with the link can read the diagram, so keep secrets and source code out of it.
+
+The [input reference](skills/stack-architect/references/graph-input.md) includes a sample document. The tool's advertised schema defines the accepted fields.
+
+| Limit                 | Value                                  |
+| --------------------- | -------------------------------------- |
+| Complete request body | 128,000 bytes                          |
+| Diagram size          | 80 nodes, 160 edges                    |
+| MCP requests          | 60 per minute, shared across clients   |
+| Creation attempts     | 100 per UTC day, shared across clients |
+
+The server rejects invalid diagrams before saving. Request limits return HTTP 429 with `Retry-After`; creation limits return a tool error with retry guidance. A timed-out request may still have created a project. Check before retrying to avoid duplicates.
+
+Quotas are stored in Turso and apply across server instances. They limit MCP activity, not all hosting costs; rejected requests still reach the server. Use your hosting provider's firewall to block abusive traffic when needed.
 
 ## Tech stack
 
@@ -61,35 +124,34 @@ The share API creates and upgrades its tables on first use. [`server/schema.sql`
 ## Checks
 
 ```bash
+npm test
 npm run lint
 npm run build
 ```
 
-`npm run build` also runs the TypeScript compiler. The repository does not have an automated test runner yet.
+Tests cover public MCP access, protocol handling, validation, limits, and layout using in-memory persistence. The build also checks TypeScript.
+
+## Deploy
+
+On Vercel, configure the environment variables above and build with `npm run build`; Nitro detects the deployment platform. To build Vercel output locally:
+
+```sh
+NITRO_PRESET=vercel npm run build
+```
+
+In PowerShell, set `$env:NITRO_PRESET = "vercel"` before running the build.
 
 ## Project layout
 
-```text
-src/
-  components/
-    app/                 top bar and editor shell
-    flow/                canvas, nodes, inspector, and asset palette
-    ui/                  shared interface components
-  hooks/                 editor shortcuts, theme, and responsive helpers
-  lib/
-    store.ts             diagram state, undo and redo, localStorage
-    project-sync.ts      queued creator sync and edit-token persistence
-    share.ts             public import links and share API client
-    smart-guides.ts      alignment and equal-spacing calculations
-    types.ts             diagram serialization types
-    catalog.ts           curated technology catalog
-    catalog-generated.ts generated svgl catalog
-    export.ts            PNG, SVG, and JSON import and export
-server/
-  api/                   Nitro share endpoints
-  utils/                 Turso connection, schema migration, and rate limits
-  schema.sql             base Turso schema
-```
+| Directory                 | Contents                                                 |
+| ------------------------- | -------------------------------------------------------- |
+| `src/components/`         | Editor, canvas, inspector, and UI components             |
+| `src/lib/`                | Diagram types, state, layout, icons, sharing, and export |
+| `server/api/`             | Project and MCP routes                                   |
+| `server/mcp/`             | MCP handler and document validation                      |
+| `server/utils/`           | Turso persistence and rate limits                        |
+| `skills/stack-architect/` | Installable repository-analysis skill                    |
+| `tests/`                  | MCP tests                                                |
 
 ## Updating the icon catalog
 
@@ -101,7 +163,7 @@ After updating the svgl package, regenerate the catalog:
 node scripts/generate-svgl-catalog.mjs
 ```
 
-If an icon uses a different export name than its catalog slug, add the mapping in `src/lib/icons.ts`. Do not rename the slug across the catalog.
+The generator also updates `src/lib/icon-names-generated.ts`, allowing the server to search the same catalog without importing SVG artwork. If an icon uses a different export name than its catalog slug, add the svgl mapping in `src/lib/icon-names.ts`. Simple Icons fallback mappings remain in `src/lib/icons.ts`. Do not rename the slug across the catalog.
 
 ## Repository notes
 

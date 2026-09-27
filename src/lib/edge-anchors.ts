@@ -53,6 +53,11 @@ export function projectToPerimeter(rect: Rect, px: number, py: number): NormPoin
 
 /** Which face a normalized point sits closest to. */
 export function faceOf(rect: Rect, p: NormPoint): Position {
+  // Perimeter coordinates identify the face regardless of a frame's aspect ratio.
+  if (p.x === 0) return Position.Left
+  if (p.x === 1) return Position.Right
+  if (p.y === 0) return Position.Top
+  if (p.y === 1) return Position.Bottom
   const dx = (p.x - 0.5) * rect.w
   const dy = (p.y - 0.5) * rect.h
   return Math.abs(dx) >= Math.abs(dy)

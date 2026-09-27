@@ -2,7 +2,7 @@
 // Re-run `node scripts/generate-svgl-catalog.mjs` after bumping
 // @ridemountainpig/svgl-react. Curated entries in catalog.ts take precedence.
 
-import type { TechItem } from "./types"
+import type { TechItem } from "./types.js"
 
 export const generatedTechItems: TechItem[] = [
   { slug: "ahooks", name: "ahooks", subtitle: "ahooks.js.org", category: "frontend", keywords: "library" },

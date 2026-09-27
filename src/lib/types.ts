@@ -103,9 +103,9 @@ export type TechEdgeData = {
   labelX?: number
   labelY?: number
   /**
-   * Pinned tail/head position, normalized (0–1) within the node's connection
-   * rect. Absent = automatic: the geometrically best of the four side points,
-   * re-evaluated as nodes move.
+   * Tail/head position set by auto-layout or manual dragging, normalized
+   * (0–1) within the node's connection rect. Auto-layout redistributes these
+   * along each side. Absent = choose a side midpoint as nodes move.
    */
   sourcePoint?: EdgeEndPoint
   targetPoint?: EdgeEndPoint

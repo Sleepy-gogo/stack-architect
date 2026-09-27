@@ -1,0 +1,9 @@
+interface:
+  display_name: "Stack Architect"
+  short_description: "Turn a repository into an editable architecture diagram"
+  default_prompt: "Use $stack-architect to analyze this repository and create an editable architecture diagram."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "stack_architect"
+      description: "Configured Stack Architect remote MCP with search_architecture_icons and create_architecture_project"

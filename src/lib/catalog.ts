@@ -1,6 +1,6 @@
-import { getSvglName } from "./icons"
-import { generatedTechItems } from "./catalog-generated"
-import type { TechCategoryId, TechItem } from "./types"
+import { getSvglName } from "./icon-names.js"
+import { generatedTechItems } from "./catalog-generated.js"
+import type { TechCategoryId, TechItem } from "./types.js"
 
 export const categories: { id: TechCategoryId; label: string; color: string }[] =
   [

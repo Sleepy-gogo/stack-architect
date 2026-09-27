@@ -1,4 +1,4 @@
-import { NODE_HEIGHT, NODE_WIDTH, TECH_CARD_SIZE, type AppNode } from "./types"
+import { NODE_HEIGHT, NODE_WIDTH, TECH_CARD_SIZE, type AppNode } from "./types.js"
 
 export type Rect = { x: number; y: number; w: number; h: number }
 
