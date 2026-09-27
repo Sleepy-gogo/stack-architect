@@ -10,10 +10,12 @@ The advertised tool schema is authoritative. This is a bounded input profile of 
 - Categories: use the category returned by `search_architecture_icons`. All editor categories are supported, including `editors`, `design`, `productivity`, `software`, `browsers`, `media`, `social`, `gaming` and `crypto`.
 - Discover icons with `search_architecture_icons({ "queries": ["Astro", "Sentry", "Mercado Pago"], "limit": 5 })`. Results contain exact slugs, names, subtitles and categories. Search is read-only. Unknown slugs are rejected with guidance to search again.
 - Generic icon slugs: `browser`, `mobile`, `service`, `datastore`, `queue`, `cache`, `cdn`, `cron`, `bucket`, `thirdparty`. Use them for unnamed building blocks or after searching for a brand with no match. Brand examples include `astro`, `sentry`, `mercadopago`, `convex`, `resend`, `react`, `nextjs`, `postgresql` and `vercel`. Search the live catalog instead of treating this list as exhaustive.
-- `group` data: required `label` and six-digit hex `color`; optional `dashed` and icon slug `icon`.
+- `group` data: required `label` and six-digit hex `color`; optional `dashed` and icon slug `icon`. The color is a border/heading accent, not a fill. Choose a medium tone such as `#8b5cf6`, `#0d9488`, `#64748b`; avoid near-white pastels. The editor derives a faint background tint and theme-adjusted stroke and heading colors without changing the saved hex value.
 - `text` data: required `text`; optional hex `color` and `size` of `sm`, `md` or `lg`.
 - Edges: required `id`, `source`, `target`; optional `type: "tech"` and `data` containing `label`, `style` of `solid` or `dashed`, and six-digit hex `colorOverride`. Sources and targets can be tech nodes or groups. No self connections.
 - Do not send arbitrary React Flow properties, styles, handles or external icon URLs.
+
+Before creation, call `review_architecture_document` with the same `{ "document": ... }` wrapper. It does not publish or consume creation quota. Its response includes `summary` and `findings` with `code`, affected `nodeIds`, `edgeIds`, and a suggested revision. It flags six-plus connections on a component, eight-plus frame boundary crossings, dense overviews and pale frame accents. These are review prompts, not hard limits or a visual correctness score. Review the revised draft once after addressing findings.
 
 ```json
 {

@@ -2,6 +2,7 @@ import { createMcpHandler, McpServer } from "@modelcontextprotocol/server"
 import { z } from "zod"
 import { documentSchema, MAX_MCP_BODY_BYTES, prepareDocument } from "./document.js"
 import { searchCatalog } from "./catalog.js"
+import { reviewDocument } from "./review.js"
 
 type Allowance = { allowed: boolean; retryAfter: number }
 export type McpDependencies = {
@@ -49,9 +50,18 @@ export async function handleMcp(request: Request, dependencies: McpDependencies)
         const result = { matches: searchCatalog(queries, limit) }
         return { structuredContent: result, content: [{ type: "text", text: JSON.stringify(result) }] }
       })
+      server.registerTool("review_architecture_document", {
+        title: "Review diagram readability before saving",
+        description: "Read-only review of a draft GraphDocument. Call before create_architecture_project. Reports crowded component nodes, busy frame boundaries, dense overviews and pale frame accents, with affected IDs and concrete suggestions. Revise the draft or justify the detail before saving. Heuristics do not establish architecture or prove visual quality. Does not save, publish, or consume creation quota.",
+        inputSchema: z.object({ document: documentSchema }).strict(),
+        annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      }, async ({ document }) => {
+        const result = reviewDocument(document)
+        return { structuredContent: result, content: [{ type: "text", text: JSON.stringify(result) }] }
+      })
       server.registerTool("create_architecture_project", {
         title: "Create an editable architecture diagram",
-        description: "Validate, lay out and save a GraphDocument. First use search_architecture_icons for exact brand slugs. Compose a selective architecture overview: groups represent deployment/application boundaries, with optional brand icons and nested groups; keep tooling separate from runtime. Use edge data.colorOverride with a small consistent palette, solid for primary calls and dashed for secondary/async relationships, short labels, and a text legend if needed. Connect to a group when the relationship concerns the whole subsystem instead of duplicating arrows to every child. The server places nodes, sizes groups and distributes arrow endpoints around their sides; omit coordinates. Returns a public link that opens an editable local copy in Stack Architect. Anyone with the link can read the diagram. Send architecture summaries only, never secrets or source files. Creation is not idempotent; do not retry an ambiguous timeout automatically.",
+        description: "Validate, lay out and save a GraphDocument. First use search_architecture_icons for exact brand slugs and review_architecture_document to check the draft before saving. At six or more connections on a component, review its responsibilities; at eight or more, usually split supported roles within a runtime frame or move secondary dependencies to notes. A frame around the same hub is not enough. Frame color is a medium border/heading accent, not a pale background fill. Compose a selective architecture overview: groups represent deployment/application boundaries, with optional brand icons and nested groups; keep tooling separate from runtime. Use edge data.colorOverride with a small consistent palette, solid for primary calls and dashed for secondary/async relationships, short labels, and a text legend if needed. Connect to a group when the relationship concerns the whole subsystem instead of duplicating arrows to every child. The server places nodes, sizes groups and distributes arrow endpoints around their sides; omit coordinates. Returns a public link that opens an editable local copy in Stack Architect. Anyone with the link can read the diagram. Send architecture summaries only, never secrets or source files. Creation is not idempotent; do not retry an ambiguous timeout automatically.",
         inputSchema: z.object({ document: documentSchema }).strict(),
         outputSchema: z.object({ projectId: z.string(), url: z.string(), editing: z.literal("local-copy") }),
         annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },

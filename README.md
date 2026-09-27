@@ -32,7 +32,7 @@ Rate-limit counters live in Turso, so they apply across server instances. The se
 
 ## MCP
 
-The MCP server exposes `search_architecture_icons` and `create_architecture_project` at `/api/mcp`. Your agent analyzes the repository, looks up exact icons from the editor's catalog, and sends a `GraphDocument` with styled relationships. Stack Architect validates it, arranges the nodes and connection points, saves it in Turso, and returns a project link. Icon search is read-only and does not consume the creation quota.
+The MCP server exposes `search_architecture_icons`, `review_architecture_document` and `create_architecture_project` at `/api/mcp`. Your agent analyzes the repository, looks up exact icons from the editor's catalog, reviews the draft for crowded nodes, busy boundaries and pale frame accents, and sends a `GraphDocument` with styled relationships. Stack Architect validates it, arranges the nodes and connection points, saves it in Turso, and returns a project link. Icon search and draft review are read-only and do not consume the creation quota. Review findings guide composition; they do not prove a diagram has no crossings.
 
 The endpoint uses stateless Streamable HTTP and runs in the same Nitro deployment as the editor. Repository analysis stays with the agent; the server receives only the diagram.
 

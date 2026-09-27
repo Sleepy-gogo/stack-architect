@@ -335,6 +335,37 @@ input[type="search"]::-webkit-search-cancel-button {
   filter: drop-shadow(0 0 1px rgb(15 23 42 / 0.35));
 }
 
+/* The stored frame color is an accent, not a fill. Derive separate readable
+   strokes and labels without rewriting the document or its color picker. */
+.frame-outline,
+.frame-heading {
+  --frame-stroke: var(--frame-accent);
+  --frame-label: var(--frame-accent);
+}
+
+.frame-outline {
+  border-color: var(--frame-stroke);
+  background-color: color-mix(in oklch, var(--frame-stroke) 5%, transparent);
+}
+
+.frame-heading {
+  color: var(--frame-label);
+}
+
+@supports (color: oklch(from #fff l c h)) {
+  .frame-outline,
+  .frame-heading {
+    --frame-stroke: oklch(from var(--frame-accent) min(l, 0.6) c h);
+    --frame-label: oklch(from var(--frame-accent) min(l, 0.5) c h);
+  }
+
+  .dark .frame-outline,
+  .dark .frame-heading {
+    --frame-stroke: oklch(from var(--frame-accent) max(l, 0.6) c h);
+    --frame-label: oklch(from var(--frame-accent) max(l, 0.72) c h);
+  }
+}
+
 /* "group" collides with React Flow's built-in node type, whose base styles
    paint a second border behind our custom frame — strip it. */
 .react-flow__node-group,

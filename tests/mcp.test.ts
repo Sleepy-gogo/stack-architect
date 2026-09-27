@@ -59,7 +59,7 @@ test("anonymous clients can initialize, discover tools and create projects", asy
   const initialized = await result(await handleMcp(request({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-11-25", capabilities: {}, clientInfo: { name: "test", version: "1" } } }), ctx.dependencies))
   assert.equal(initialized.result.serverInfo.name, "stack-architect")
   const discovery = await result(await handleMcp(request({ jsonrpc: "2.0", id: 2, method: "tools/list" }), ctx.dependencies))
-  assert.equal(discovery.result.tools.length, 2)
+  assert.equal(discovery.result.tools.length, 3)
   assert.equal(discovery.result.tools.find((tool: { name: string }) => tool.name === "create_architecture_project").annotations.idempotentHint, false)
   const created = await result(await handleMcp(request(call()), ctx.dependencies))
   assert.deepEqual(created.result.structuredContent, { projectId: "abc123DEF456", url: "https://architect.example/?project=abc123DEF456", editing: "local-copy" })
@@ -78,6 +78,21 @@ test("icon discovery searches the editor catalog without consuming creation quot
   const matches = response.result.structuredContent.matches
   assert.deepEqual(matches.slice(0, 4).map((match: { items: { slug: string }[] }) => match.items[0].slug), ["astro", "sentry", "mercadopago", "nextjs"])
   assert.equal(matches[4].total, 0)
+  assert.equal(ctx.saved.length, 0)
+})
+
+test("draft review reports findings without saving or consuming creation quota", async () => {
+  const ctx = setup({ consumeCreation: async () => { throw new Error("Review must not consume creation quota") } })
+  const draft = { ...graph(), nodes: [tech("web"), tech("api"), { id: "g", type: "group", data: { label: "Backend", color: "#ccfbf1" } }] }
+  const response = await result(await handleMcp(request({ jsonrpc: "2.0", id: 3, method: "tools/call", params: {
+    name: "review_architecture_document", arguments: { document: draft },
+  } }), ctx.dependencies))
+  assert.equal(response.result.structuredContent.findings[0].code, "pale-frame-accent")
+  assert.equal(ctx.saved.length, 0)
+  const invalid = await result(await handleMcp(request({ jsonrpc: "2.0", id: 4, method: "tools/call", params: {
+    name: "review_architecture_document", arguments: { document: { ...graph(), edges: [{ id: "bad", source: "web", target: "missing" }] } },
+  } }), ctx.dependencies))
+  assert.ok(invalid.result?.isError || invalid.error)
   assert.equal(ctx.saved.length, 0)
 })
 

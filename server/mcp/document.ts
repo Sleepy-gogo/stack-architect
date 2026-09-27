@@ -37,7 +37,7 @@ const node = z.discriminatedUnion("type", [
     type: z.literal("group"),
     data: z.object({
       label: z.string().trim().min(1).max(80),
-      color,
+      color: color.describe("Frame accent for its border and heading, not a background fill. Use a medium tone such as #8b5cf6, #0d9488 or #64748b; the renderer supplies a faint tint and adjusts contrast for the theme. Avoid pale fills such as #ddd6fe or #f1f5f9."),
       dashed: z.boolean().optional(),
       icon: iconSlug.optional().describe("Catalog icon for the frame heading, e.g. vercel or docker."),
     }).strict(),

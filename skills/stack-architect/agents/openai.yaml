@@ -6,4 +6,4 @@ dependencies:
   tools:
     - type: "mcp"
       value: "stack_architect"
-      description: "Configured Stack Architect remote MCP with search_architecture_icons and create_architecture_project"
+      description: "Configured Stack Architect remote MCP with search_architecture_icons, review_architecture_document and create_architecture_project"

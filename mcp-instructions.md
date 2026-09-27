@@ -42,7 +42,7 @@ Codex's documented user-level skill directory is `~/.agents/skills/`. Install th
 
 ## Verify the connection
 
-Reload the client if necessary. Use its MCP connection check to initialize the server and list tools. Confirm that `search_architecture_icons` and `create_architecture_project` appear and that the client discovers the skill. Test read-only icon search with Astro, Sentry and Mercado Pago. A GET request in a browser is not a connection test: this endpoint accepts POST.
+Reload the client if necessary. Use its MCP connection check to initialize the server and list tools. Confirm that `search_architecture_icons`, `review_architecture_document` and `create_architecture_project` appear and that the client discovers the skill. Test read-only icon search with Astro, Sentry and Mercado Pago. A GET request in a browser is not a connection test: this endpoint accepts POST.
 
 Do not call the creation tool just to check setup. It saves a public-by-link diagram and consumes the creation quota. If the client needs a restart before tools become available, report that verification is pending rather than claiming it passed.
 

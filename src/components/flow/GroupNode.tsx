@@ -1,4 +1,5 @@
 import { Handle, NodeResizer, Position, type NodeProps } from "@xyflow/react"
+import type { CSSProperties } from "react"
 import { cn } from "@/lib/utils"
 import { resolveSwatch } from "@/lib/swatches"
 import { BrandIcon } from "./BrandIcon"
@@ -14,6 +15,7 @@ const HANDLE_POSITIONS = [
 export function GroupNode({ data, selected }: NodeProps) {
   const d = data as GroupNodeData
   const color = resolveSwatch(d.color) || "#3b82f6"
+  const frameStyle = { "--frame-accent": color } as CSSProperties
 
   return (
     <>
@@ -27,19 +29,18 @@ export function GroupNode({ data, selected }: NodeProps) {
 
       <div
         className={cn(
-          "size-full rounded-2xl border-[1.5px] transition-shadow",
+          "frame-outline size-full rounded-2xl border-[1.5px] transition-shadow",
           selected && "shadow-[0_0_0_3px_color-mix(in_oklch,var(--ring)_28%,transparent)]",
         )}
         style={{
-          borderColor: color,
+          ...frameStyle,
           borderStyle: d.dashed ? "dashed" : "solid",
-          backgroundColor: `color-mix(in oklch, ${color} 5%, transparent)`,
         }}
       />
 
       <div
-        className="absolute -top-2.5 left-7 flex max-w-[calc(100%-3.5rem)] items-center gap-1.5 bg-[var(--canvas)] px-2"
-        style={{ color }}
+        className="frame-heading absolute -top-2.5 left-7 flex max-w-[calc(100%-3.5rem)] items-center gap-1.5 bg-[var(--canvas)] px-2"
+        style={frameStyle}
       >
         {d.icon ? (
           <span className="flex size-4 shrink-0 items-center justify-center">
@@ -49,7 +50,7 @@ export function GroupNode({ data, selected }: NodeProps) {
           <span
             aria-hidden="true"
             className="size-2 shrink-0 rounded-[2px]"
-            style={{ backgroundColor: color }}
+            style={{ backgroundColor: "currentColor" }}
           />
         )}
         <span className="truncate font-mono text-[11px] font-semibold tracking-[0.14em] uppercase">
