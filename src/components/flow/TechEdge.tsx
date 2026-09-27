@@ -18,7 +18,14 @@ import {
   snapToSide,
 } from "@/lib/edge-anchors"
 import { findAutoLabelSpot } from "@/lib/edge-labels"
-import { getObstacleAvoidingPath } from "@/lib/orthogonal-route"
+import {
+  getObstacleAvoidingPath,
+  roundedPath,
+  routeMidpoint,
+  type RoutePoint,
+} from "@/lib/orthogonal-route"
+import { readRoute, resolveManualRoute } from "@/lib/editable-route"
+import { EdgeRouteControls } from "./EdgeRouteControls"
 
 const SIBLING_SPREAD = 18
 
@@ -36,9 +43,11 @@ export function TechEdge({
   sourcePosition,
   targetPosition,
   data,
-  selected,
+  selected: flowSelected,
 }: EdgeProps) {
   const d = (data ?? {}) as TechEdgeData
+  const inspectorSelected = useStore((s) => s.selectedEdgeId === id)
+  const selected = flowSelected || inspectorSelected
   const isDashed = d.style === "dashed"
   const color = resolveSwatch(d.colorOverride) ?? (isDashed ? EDGE_DASHED : EDGE_SOLID)
   const selectEdge = useStore((s) => s.selectEdge)
@@ -47,6 +56,7 @@ export function TechEdge({
   const nodes = useStore((s) => s.nodes)
   const edges = useStore((s) => s.edges)
   const { screenToFlowPosition } = useReactFlow()
+  const [routePreview, setRoutePreview] = useState<RoutePoint[] | null>(null)
 
   const byId = new Map(nodes.map((n) => [n.id, n]))
   const srcNode = byId.get(source)
@@ -146,15 +156,21 @@ export function TechEdge({
     ]
   })
 
-  // Right angles read as a system diagram. Candidate lanes run around every
-  // unrelated card and frame instead of relying on a midpoint-only router.
-  const [path, labelX, labelY] = getObstacleAvoidingPath({
-    source: { x: sx, y: sy },
-    target: { x: tx, y: ty },
-    sourcePosition: sp,
-    targetPosition: tp,
-    obstacles,
-  })
+  // Manual routes keep the user's lanes; automatic routes avoid other cards.
+  const manualRoute = readRoute(d.routePoints)
+  const routePoints = routePreview ?? (
+    manualRoute
+      ? resolveManualRoute(manualRoute, { x: sx, y: sy }, { x: tx, y: ty }, sp, tp)
+      : getObstacleAvoidingPath({
+          source: { x: sx, y: sy },
+          target: { x: tx, y: ty },
+          sourcePosition: sp,
+          targetPosition: tp,
+          obstacles,
+        })[3]
+  )
+  const path = roundedPath(routePoints)
+  const { x: labelX, y: labelY } = routeMidpoint(routePoints)
 
   /* ---------- Label auto-placement ---------- */
 
@@ -372,6 +388,9 @@ export function TechEdge({
 
       {d.label || selected || hovered ? (
         <EdgeLabelRenderer>
+          {selected && !activeDrag ? (
+            <EdgeRouteControls id={id} points={routePoints} onPreview={setRoutePreview} />
+          ) : null}
           {d.label ? (
             <div
               role="button"

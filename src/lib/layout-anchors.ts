@@ -15,7 +15,7 @@ export function layoutEdgeAnchors(nodes: AppNode[], edges: AppEdge[]): AppEdge[]
   const byId = new Map(nodes.map((node) => [node.id, node]))
   const buckets = new Map<string, Attachment[]>()
   const result = edges.map((edge) => {
-    const { sourcePoint: _s, targetPoint: _t, labelX: _x, labelY: _y, ...data } = edge.data ?? {}
+    const { sourcePoint: _s, targetPoint: _t, labelX: _x, labelY: _y, routePoints: _r, ...data } = edge.data ?? {}
     return { ...edge, data }
   })
   for (const edge of result) {

@@ -109,6 +109,8 @@ export type TechEdgeData = {
    */
   sourcePoint?: EdgeEndPoint
   targetPoint?: EdgeEndPoint
+  /** User-shaped orthogonal route, including the original attachment positions. */
+  routePoints?: EdgeEndPoint[]
   [key: string]: unknown
 }
 

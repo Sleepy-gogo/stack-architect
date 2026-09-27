@@ -102,6 +102,14 @@ function graphBounds(nodes: AppNode[]): Bounds {
     maxX = Math.max(maxX, r.x + r.w)
     maxY = Math.max(maxY, r.y + r.h)
   }
+  // Manual detours can extend beyond the nodes; include the rendered route.
+  for (const path of document.querySelectorAll<SVGGraphicsElement>(".react-flow__edge path[id]")) {
+    const rect = path.getBBox()
+    minX = Math.min(minX, rect.x)
+    minY = Math.min(minY, rect.y)
+    maxX = Math.max(maxX, rect.x + rect.width)
+    maxY = Math.max(maxY, rect.y + rect.height)
+  }
   return {
     x: minX,
     y: minY,
@@ -253,7 +261,8 @@ async function renderViewport(nodes: AppNode[], options: RenderOptions): Promise
     filter: (node: HTMLElement) => {
       // React Flow's own chrome (controls, minimap, panels) is not part of the diagram.
       const cls = typeof node.className === "string" ? node.className : ""
-      return !cls.includes("react-flow__panel") && !cls.includes("react-flow__minimap")
+      return node.dataset?.exportIgnore !== "true" && !cls.includes("endpoint-dot") &&
+        !cls.includes("react-flow__panel") && !cls.includes("react-flow__minimap")
     },
   }
 

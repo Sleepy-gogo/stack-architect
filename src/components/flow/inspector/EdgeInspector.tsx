@@ -1,4 +1,4 @@
-import { ArrowLeftRightIcon } from "lucide-react"
+import { ArrowLeftRightIcon, RotateCcwIcon } from "lucide-react"
 import { useStore } from "@/lib/store"
 import { nodeLabel } from "@/lib/node-labels"
 import type { AppEdge, TechEdgeData } from "@/lib/types"
@@ -33,6 +33,12 @@ export function EdgeInspector({ edge }: { edge: AppEdge }) {
               target: e.source,
               sourceHandle: e.targetHandle,
               targetHandle: e.sourceHandle,
+              data: {
+                ...e.data,
+                sourcePoint: e.data?.targetPoint,
+                targetPoint: e.data?.sourcePoint,
+                routePoints: e.data?.routePoints?.toReversed(),
+              },
             }
           : e,
       ),
@@ -83,6 +89,25 @@ export function EdgeInspector({ edge }: { edge: AppEdge }) {
               Reverse
             </Button>
           </Row>
+        </Section>
+
+        <Section title="Route">
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Drag a dot on the line to move a segment. Double-click a dot to add bends.
+          </p>
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            With a dot focused, use arrow keys to move it or Enter to add bends.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            disabled={!d.routePoints}
+            onClick={() => updateEdge(edge.id, { routePoints: undefined })}
+          >
+            <RotateCcwIcon />
+            Reset route
+          </Button>
         </Section>
 
         <Section title="Appearance">

@@ -37,10 +37,11 @@ test("nested frame coordinates determine the facing side", () => {
 })
 
 test("auto-layout replaces old geometry and preserves styles, labels and topology", () => {
-  const input: AppEdge = { ...edge("e", "a", "b"), data: { sourcePoint: { x: 0, y: 0.2 }, targetPoint: { x: 1, y: 0.8 }, labelX: 9999, labelY: 9999, label: "webhook", style: "dashed", colorOverride: "#0284c7" } }
+  const input: AppEdge = { ...edge("e", "a", "b"), data: { sourcePoint: { x: 0, y: 0.2 }, targetPoint: { x: 1, y: 0.8 }, routePoints: [{ x: 0, y: 0 }, { x: 200, y: 0 }], labelX: 9999, labelY: 9999, label: "webhook", style: "dashed", colorOverride: "#0284c7" } }
   const doc = layoutDagre({ nodes: [node("a", 500, 200), node("b", 0, 0)], edges: [input] })
   assert.equal(doc.edges[0].data!.labelX, undefined)
   assert.equal(doc.edges[0].data!.labelY, undefined)
+  assert.equal(doc.edges[0].data!.routePoints, undefined)
   assert.equal(doc.edges[0].data!.label, "webhook")
   assert.equal(doc.edges[0].data!.colorOverride, "#0284c7")
   assert.equal(doc.edges[0].data!.style, "dashed")

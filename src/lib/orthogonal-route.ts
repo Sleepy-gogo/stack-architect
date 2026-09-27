@@ -13,7 +13,7 @@ function outward(position: Position): RoutePoint {
   return { x: 0, y: 1 }
 }
 
-function simplify(points: RoutePoint[]): RoutePoint[] {
+export function simplifyRoute(points: RoutePoint[]): RoutePoint[] {
   const unique = points.filter(
     (point, index) => index === 0 || point.x !== points[index - 1].x || point.y !== points[index - 1].y,
   )
@@ -22,8 +22,8 @@ function simplify(points: RoutePoint[]): RoutePoint[] {
     const previous = unique[index - 1]
     const next = unique[index + 1]
     return !(
-      (previous.x === point.x && point.x === next.x) ||
-      (previous.y === point.y && point.y === next.y)
+      (previous.x === point.x && point.x === next.x && (point.y - previous.y) * (next.y - point.y) >= 0) ||
+      (previous.y === point.y && point.y === next.y && (point.x - previous.x) * (next.x - point.x) >= 0)
     )
   })
 }
@@ -58,7 +58,7 @@ function score(points: RoutePoint[], obstacles: Rect[]): number {
   return crossings * 1_000_000 + length + Math.max(0, points.length - 2) * 18
 }
 
-function roundedPath(points: RoutePoint[]): string {
+export function roundedPath(points: RoutePoint[]): string {
   if (points.length === 0) return ""
   if (points.length === 1) return `M ${points[0].x} ${points[0].y}`
   let path = `M ${points[0].x} ${points[0].y}`
@@ -83,7 +83,7 @@ function roundedPath(points: RoutePoint[]): string {
   return `${path} L ${last.x} ${last.y}`
 }
 
-function midpoint(points: RoutePoint[]): RoutePoint {
+export function routeMidpoint(points: RoutePoint[]): RoutePoint {
   const lengths: number[] = []
   let total = 0
   for (let index = 1; index < points.length; index += 1) {
@@ -118,7 +118,7 @@ export function getObstacleAvoidingPath(options: {
   sourcePosition: Position
   targetPosition: Position
   obstacles: Rect[]
-}): [path: string, labelX: number, labelY: number] {
+}): [path: string, labelX: number, labelY: number, points: RoutePoint[]] {
   const { source, target, sourcePosition, targetPosition, obstacles } = options
   const sourceVector = outward(sourcePosition)
   const targetVector = outward(targetPosition)
@@ -164,7 +164,7 @@ export function getObstacleAvoidingPath(options: {
   let best: RoutePoint[] | null = null
   let bestScore = Number.POSITIVE_INFINITY
   for (const inner of innerCandidates) {
-    const candidate = simplify([source, ...inner, target])
+    const candidate = simplifyRoute([source, ...inner, target])
     const candidateScore = score(candidate, obstacles)
     if (candidateScore < bestScore) {
       best = candidate
@@ -173,6 +173,6 @@ export function getObstacleAvoidingPath(options: {
   }
 
   const points = best ?? [source, target]
-  const label = midpoint(points)
-  return [roundedPath(points), label.x, label.y]
+  const label = routeMidpoint(points)
+  return [roundedPath(points), label.x, label.y, points]
 }
