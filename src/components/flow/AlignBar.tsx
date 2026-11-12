@@ -1,3 +1,4 @@
+import { FIT_VIEW_PADDING } from "@/lib/fit-view"
 import { useState } from "react"
 import { useReactFlow } from "@xyflow/react"
 import {
@@ -59,7 +60,7 @@ export function AlignBar() {
     try {
       const laidOut = await layoutDocument({ nodes, edges })
       loadDocument({ ...laidOut, title: undefined })
-      window.setTimeout(() => fitView({ padding: 0.18, duration: 300 }), 60)
+      window.setTimeout(() => fitView({ padding: FIT_VIEW_PADDING, duration: 300 }), 60)
     } finally {
       setArranging(false)
     }

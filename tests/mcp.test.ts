@@ -5,6 +5,7 @@ import { PROTOCOL_VERSION_META_KEY, CLIENT_INFO_META_KEY, CLIENT_CAPABILITIES_ME
 import { handleMcp, type McpDependencies } from "../server/mcp/handler.js"
 import { MAX_MCP_BODY_BYTES, prepareDocument } from "../server/mcp/document.js"
 import type { GraphDocument } from "../src/lib/types.js"
+import { absoluteRect, rectsIntersect } from "../src/lib/geometry.js"
 import { svglExportNames } from "../src/lib/icon-names-generated.js"
 
 const tech = (id: string, parentId?: string) => ({ id, type: "tech", parentId, data: { slug: "service", name: id, subtitle: "API", category: "backend" } })
@@ -214,14 +215,18 @@ test("nested groups are sized around laid out children and parents precede child
   assert.deepEqual((await prepareDocument({ version: 1, title: "Empty group", nodes: [{ id: "g", type: "group", data: { label: "G", color: "#abcdef" } }], edges: [] })).nodes[0].width, 240)
 })
 
-test("a document legend becomes a legend node placed below the diagram", async () => {
+test("a document legend becomes a legend node at the diagram's right edge, clear of other nodes", async () => {
   const doc = await prepareDocument({ ...graph(), nodes: [...graph().nodes, { id: "legend", type: "text", data: { text: "Taken id" } }],
     legend: { title: "Arrows", items: [{ label: "Request", style: "solid" }, { label: "Callback", style: "dashed", color: "#0284c7" }] } })
   const legend = doc.nodes.find((node) => node.type === "legend")!
   assert.equal(legend.id, "legend-2")
   assert.deepEqual((legend.data as { items: unknown[] }).items.length, 2)
-  const web = doc.nodes.find((node) => node.id === "web")!
-  assert.ok(legend.position.y > web.position.y)
+  const byId = new Map(doc.nodes.map((node) => [node.id, node]))
+  const others = doc.nodes.filter((node) => node.id !== legend.id && !node.parentId).map((node) => absoluteRect(node, byId))
+  const box = absoluteRect(legend, byId)
+  for (const other of others) assert.ok(!rectsIntersect(box, other), "the legend overlaps the diagram")
+  // The editor's layer list covers the bottom-left corner, so the legend keeps to the right.
+  assert.ok(box.x + box.w >= Math.max(...others.map((other) => other.x + other.w)))
   await assert.rejects(prepareDocument({ ...graph(), legend: { items: [] } }))
   await assert.rejects(prepareDocument({ ...graph(), nodes: [{ ...tech("web"), data: { ...tech("web").data, subtitle: "x".repeat(41) } }, tech("api")] }))
 })

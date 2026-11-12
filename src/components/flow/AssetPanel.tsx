@@ -1,3 +1,4 @@
+import { FIT_VIEW_PADDING } from "@/lib/fit-view"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useReactFlow } from "@xyflow/react"
 import {
@@ -293,7 +294,7 @@ export function AssetPanel() {
                 type="button"
                 onClick={() => {
                   loadDocument(t.build())
-                  window.setTimeout(() => fitView({ padding: 0.18, duration: 300 }), 60)
+                  window.setTimeout(() => fitView({ padding: FIT_VIEW_PADDING, duration: 300 }), 60)
                 }}
                 className="group flex w-full items-center gap-3 rounded-xl border border-border bg-card p-2.5 text-left transition-colors hover:border-foreground/20 hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >

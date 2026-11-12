@@ -52,7 +52,7 @@ export async function handleMcp(request: Request, dependencies: McpDependencies)
       })
       server.registerTool("review_architecture_document", {
         title: "Review diagram readability before saving",
-        description: "Read-only review of a draft GraphDocument. Call before create_architecture_project. Reports crowded component nodes, busy frame boundaries, dense overviews and pale frame accents, with affected IDs and concrete suggestions. Revise the draft or justify the detail before saving. Heuristics do not establish architecture or prove visual quality. Does not save, publish, or consume creation quota.",
+        description: "Read-only review of a draft GraphDocument. Call before create_architecture_project. Reports crowded component nodes, busy frame boundaries, dense overviews, pale frame accents, more than four arrow colors, mixed arrow styles without a legend, and names or subtitles too long for their card, with affected IDs and concrete suggestions. Revise the draft or justify the detail before saving. Heuristics do not establish architecture or prove visual quality. Does not save, publish, or consume creation quota.",
         inputSchema: z.object({ document: documentSchema }).strict(),
         annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       }, async ({ document }) => {

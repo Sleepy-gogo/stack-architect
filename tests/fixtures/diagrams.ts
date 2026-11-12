@@ -1,4 +1,5 @@
 /** MCP-style input documents used to measure layout and routing quality. */
+import { readFileSync } from "node:fs"
 type Style = "solid" | "dashed"
 
 const tech = (id: string, slug: string, name: string, subtitle: string, category: string, parentId?: string) =>
@@ -116,4 +117,11 @@ export function synthetic(nodeCount = 80, edgeCount = 160) {
   return { version: 1, title: "Synthetic", nodes, edges }
 }
 
-export const samples = { hero, saas, monorepo }
+
+/**
+ * What a fresh agent produced with the skill for this repository: two frames
+ * without arrows (shared code, tooling), a nested deployment frame, a legend.
+ */
+export const selfDiagram: unknown = JSON.parse(readFileSync(new URL("./self-diagram.json", import.meta.url), "utf8"))
+
+export const samples = { hero, saas, monorepo, self: selfDiagram }

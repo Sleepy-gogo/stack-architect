@@ -1,0 +1,414 @@
+{
+  "version": 1,
+  "title": "Stack Architect",
+  "nodes": [
+    {
+      "id": "browser",
+      "type": "group",
+      "data": {
+        "label": "Browser editor",
+        "color": "#8b5cf6",
+        "icon": "react"
+      }
+    },
+    {
+      "id": "canvas",
+      "type": "tech",
+      "parentId": "browser",
+      "data": {
+        "slug": "react",
+        "name": "Canvas",
+        "subtitle": "react flow editor",
+        "category": "frontend",
+        "note": "React 19 SPA built with Vite. Entry: src/main.tsx -> src/components/app/Editor.tsx. Canvas: src/components/flow/FlowCanvas.tsx (@xyflow/react), with live orthogonal edge routing and port assignment in src/lib/edge-routing.ts, src/lib/ports.ts. Icons render from bundled @ridemountainpig/svgl-react with simple-icons fallback (src/lib/icons.ts); no runtime icon API. PNG/SVG/JSON export runs locally via html-to-image (src/lib/export.ts). The Auto layout button (src/components/flow/AlignBar.tsx) runs the shared ELK layout in the browser."
+      }
+    },
+    {
+      "id": "state",
+      "type": "tech",
+      "parentId": "browser",
+      "data": {
+        "slug": "service",
+        "name": "Editor state",
+        "subtitle": "zustand store + history",
+        "category": "frontend",
+        "note": "src/lib/store.ts: Zustand store with 60-snapshot undo/redo, copy/paste and document serialization."
+      }
+    },
+    {
+      "id": "local",
+      "type": "tech",
+      "parentId": "browser",
+      "data": {
+        "slug": "datastore",
+        "name": "localStorage",
+        "subtitle": "local autosave",
+        "category": "database",
+        "note": "Keys tech-stack-architect:doc and :recent (src/lib/store.ts), theme and custom colors, plus the owned project's edit token (src/lib/project-sync.ts). The editor works without an account."
+      }
+    },
+    {
+      "id": "sync",
+      "type": "tech",
+      "parentId": "browser",
+      "data": {
+        "slug": "service",
+        "name": "Share sync",
+        "subtitle": "share links, queued sync",
+        "category": "frontend",
+        "note": "src/lib/share.ts and src/lib/project-sync.ts. Share POSTs /api/projects and keeps the edit token locally; pending changes PUT about once per minute. Opening ?project= GETs the server copy and imports it as an independent local diagram."
+      }
+    },
+    {
+      "id": "agentws",
+      "type": "group",
+      "data": {
+        "label": "Coding agent",
+        "color": "#d97706",
+        "icon": "codex"
+      }
+    },
+    {
+      "id": "agent",
+      "type": "tech",
+      "parentId": "agentws",
+      "data": {
+        "slug": "codex",
+        "name": "Agent",
+        "subtitle": "any streamable http mcp client",
+        "category": "ai",
+        "note": "README documents Codex config; other MCP clients can use the same URL with no auth. Repository analysis happens in the agent; only the diagram is sent."
+      }
+    },
+    {
+      "id": "skill",
+      "type": "tech",
+      "parentId": "agentws",
+      "data": {
+        "slug": "markdown",
+        "name": "Architect skill",
+        "subtitle": "analysis + design guide",
+        "category": "language",
+        "note": "skills/stack-architect/SKILL.md with references/diagram-design.md and references/graph-input.md; agents/openai.yaml. Installed into the agent's skills directory (mcp-instructions.md)."
+      }
+    },
+    {
+      "id": "vercel",
+      "type": "group",
+      "data": {
+        "label": "Vercel",
+        "color": "#475569",
+        "icon": "vercel"
+      }
+    },
+    {
+      "id": "nitro",
+      "type": "group",
+      "parentId": "vercel",
+      "data": {
+        "label": "Nitro server",
+        "color": "#2563eb",
+        "icon": "unjs"
+      }
+    },
+    {
+      "id": "projectsApi",
+      "type": "tech",
+      "parentId": "nitro",
+      "data": {
+        "slug": "unjs",
+        "name": "Projects API",
+        "subtitle": "/api/projects routes",
+        "category": "backend",
+        "note": "server/api/projects.post.ts, server/api/projects/[id].get.ts, server/api/projects/[id].put.ts. 1 MB documents; 10 creates and 30 syncs per client per minute. Deployment: README targets Vercel (Nitro preset auto-detected, also serves the Vite SPA); the provider behind the hosted instance is not confirmed by the repository."
+      }
+    },
+    {
+      "id": "mcp",
+      "type": "tech",
+      "parentId": "nitro",
+      "data": {
+        "slug": "modelcontextprotocol",
+        "name": "MCP endpoint",
+        "subtitle": "stateless /api/mcp",
+        "category": "ai",
+        "note": "server/api/mcp.ts -> server/mcp/handler.ts. Tools: search_architecture_icons (server/mcp/catalog.ts over the shared icon catalog), review_architecture_document (server/mcp/review.ts heuristics), create_architecture_project. Origin and content-type checks; 60 requests/min and 100 creations/day, global."
+      }
+    },
+    {
+      "id": "prepare",
+      "type": "tech",
+      "parentId": "nitro",
+      "data": {
+        "slug": "zod",
+        "name": "Document prep",
+        "subtitle": "validate + elk layout",
+        "category": "backend",
+        "note": "server/mcp/document.ts: zod GraphDocument schema, slug/category checks against the catalog, legend node, then layoutDocument from the shared src/lib/layout.ts."
+      }
+    },
+    {
+      "id": "persist",
+      "type": "tech",
+      "parentId": "nitro",
+      "data": {
+        "slug": "service",
+        "name": "Persistence",
+        "subtitle": "projects, tokens, quotas",
+        "category": "backend",
+        "note": "server/utils/projects.ts: lazy schema creation, 12-character project IDs, SHA-256 edit-token hashes, HMAC client fingerprints and fixed-window rate limits stored in Turso."
+      }
+    },
+    {
+      "id": "turso",
+      "type": "tech",
+      "data": {
+        "slug": "turso",
+        "name": "Turso",
+        "subtitle": "shared projects + limits",
+        "category": "database",
+        "note": "Tables shared_projects and share_rate_limits (server/schema.sql), via @tursodatabase/serverless. Credentials are server-only runtime config (nitro.config.ts)."
+      }
+    },
+    {
+      "id": "shared",
+      "type": "group",
+      "data": {
+        "label": "Shared diagram code",
+        "color": "#0d9488",
+        "dashed": true,
+        "icon": "typescript"
+      }
+    },
+    {
+      "id": "catalog",
+      "type": "tech",
+      "parentId": "shared",
+      "data": {
+        "slug": "svgl",
+        "name": "Icon catalog",
+        "subtitle": "curated + generated",
+        "category": "design",
+        "note": "src/lib/catalog.ts and src/lib/catalog-generated.ts. Used by the editor's asset panel and by MCP icon search and slug validation."
+      }
+    },
+    {
+      "id": "layout",
+      "type": "tech",
+      "parentId": "shared",
+      "data": {
+        "slug": "service",
+        "name": "ELK layout",
+        "subtitle": "elkjs, left to right",
+        "category": "frontend",
+        "note": "src/lib/layout.ts (layered, orthogonal, nested frames). Used by the editor's Auto layout and by server-side Document prep."
+      }
+    },
+    {
+      "id": "types",
+      "type": "tech",
+      "parentId": "shared",
+      "data": {
+        "slug": "typescript",
+        "name": "GraphDocument",
+        "subtitle": "shared types",
+        "category": "language",
+        "note": "src/lib/types.ts. Imported by the editor, the MCP validator and the review heuristics."
+      }
+    },
+    {
+      "id": "tooling",
+      "type": "group",
+      "data": {
+        "label": "Build & tooling",
+        "color": "#64748b",
+        "dashed": true,
+        "icon": "vite"
+      }
+    },
+    {
+      "id": "vite",
+      "type": "tech",
+      "parentId": "tooling",
+      "data": {
+        "slug": "vite",
+        "name": "Vite",
+        "subtitle": "dev server + build",
+        "category": "frontend",
+        "note": "vite.config.ts: React plugin, React Compiler via Babel, Tailwind CSS v4 and the Nitro Vite plugin. npm run build runs tsc -b (TypeScript, verbatimModuleSyntax) before vite build; npm run lint runs oxlint (.oxlintrc.json)."
+      }
+    },
+    {
+      "id": "tests",
+      "type": "tech",
+      "parentId": "tooling",
+      "data": {
+        "slug": "node",
+        "name": "Tests",
+        "subtitle": "tsx --test",
+        "category": "tooling",
+        "note": "tests/: MCP protocol, validation and limits with in-memory persistence; layout quality checks for crossings, bends and label collisions."
+      }
+    },
+    {
+      "id": "generator",
+      "type": "tech",
+      "parentId": "tooling",
+      "data": {
+        "slug": "node",
+        "name": "Icon generator",
+        "subtitle": "npm run generate:icons",
+        "category": "tooling",
+        "note": "scripts/generate-svgl-catalog.mjs with scripts/svgl-catalog-overrides.mjs. Scans the svgl-react package and writes src/lib/catalog-generated.ts and src/lib/icon-names-generated.ts."
+      }
+    },
+    {
+      "id": "svglApi",
+      "type": "tech",
+      "data": {
+        "slug": "svgl",
+        "name": "svgl API",
+        "subtitle": "icon metadata",
+        "category": "design",
+        "note": "Fetched only when regenerating the catalog; not called at runtime."
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "canvas-state",
+      "source": "canvas",
+      "target": "state",
+      "data": {
+        "label": "edits",
+        "style": "solid",
+        "colorOverride": "#475569"
+      }
+    },
+    {
+      "id": "state-local",
+      "source": "state",
+      "target": "local",
+      "data": {
+        "label": "autosave",
+        "style": "solid",
+        "colorOverride": "#0d9488"
+      }
+    },
+    {
+      "id": "state-sync",
+      "source": "state",
+      "target": "sync",
+      "data": {
+        "label": "changes",
+        "style": "solid",
+        "colorOverride": "#475569"
+      }
+    },
+    {
+      "id": "sync-api",
+      "source": "sync",
+      "target": "projectsApi",
+      "data": {
+        "label": "share, load, sync",
+        "style": "solid",
+        "colorOverride": "#2563eb"
+      }
+    },
+    {
+      "id": "api-persist",
+      "source": "projectsApi",
+      "target": "persist",
+      "data": {
+        "label": "read, write",
+        "style": "solid",
+        "colorOverride": "#475569"
+      }
+    },
+    {
+      "id": "persist-turso",
+      "source": "persist",
+      "target": "turso",
+      "data": {
+        "label": "SQL",
+        "style": "solid",
+        "colorOverride": "#0d9488"
+      }
+    },
+    {
+      "id": "agent-mcp",
+      "source": "agent",
+      "target": "mcp",
+      "data": {
+        "label": "JSON-RPC tools",
+        "style": "solid",
+        "colorOverride": "#2563eb"
+      }
+    },
+    {
+      "id": "mcp-prepare",
+      "source": "mcp",
+      "target": "prepare",
+      "data": {
+        "label": "validate, lay out",
+        "style": "solid",
+        "colorOverride": "#475569"
+      }
+    },
+    {
+      "id": "mcp-persist",
+      "source": "mcp",
+      "target": "persist",
+      "data": {
+        "label": "save, quotas",
+        "style": "solid",
+        "colorOverride": "#475569"
+      }
+    },
+    {
+      "id": "gen-svgl",
+      "source": "generator",
+      "target": "svglApi",
+      "data": {
+        "label": "fetch metadata",
+        "style": "dashed",
+        "colorOverride": "#64748b"
+      }
+    },
+    {
+      "id": "gen-catalog",
+      "source": "generator",
+      "target": "catalog",
+      "data": {
+        "label": "generates",
+        "style": "dashed",
+        "colorOverride": "#64748b"
+      }
+    }
+  ],
+  "legend": {
+    "title": "Arrows",
+    "items": [
+      {
+        "label": "HTTP requests",
+        "style": "solid",
+        "color": "#2563eb"
+      },
+      {
+        "label": "in-process calls",
+        "style": "solid",
+        "color": "#475569"
+      },
+      {
+        "label": "persistence",
+        "style": "solid",
+        "color": "#0d9488"
+      },
+      {
+        "label": "build-time tooling",
+        "style": "dashed",
+        "color": "#64748b"
+      }
+    ]
+  }
+}

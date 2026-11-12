@@ -1,5 +1,5 @@
 import { Position } from "@xyflow/react"
-import type { Rect } from "./geometry"
+import type { Rect } from "./geometry.js"
 
 export type RoutePoint = { x: number; y: number }
 

@@ -1,3 +1,4 @@
+import { FIT_VIEW_PADDING } from "@/lib/fit-view"
 import { useStore as useFlowStore, useReactFlow } from "@xyflow/react"
 import { MaximizeIcon, MinusIcon, PlusIcon } from "lucide-react"
 import { IconButton } from "@/components/shared/IconButton"
@@ -12,7 +13,7 @@ export function ZoomBar() {
     <div className="pointer-events-auto flex items-center gap-0.5 rounded-2xl border border-border bg-card/95 p-1 shadow-[0_2px_6px_-2px_rgb(15_23_42/0.12),0_12px_28px_-16px_rgb(15_23_42/0.35)] backdrop-blur-sm">
       <IconButton
         label="Fit diagram to view"
-        onClick={() => fitView({ padding: 0.18, duration: 250 })}
+        onClick={() => fitView({ padding: FIT_VIEW_PADDING, duration: 250 })}
         className="size-8"
       >
         <MaximizeIcon className="size-4" />

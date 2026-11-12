@@ -3,7 +3,8 @@ import { readRoute, resolveManualRoute } from "./editable-route.js"
 import { absolutePosition, absoluteRect, anchorRect, type Rect } from "./geometry.js"
 import { getObstacleAvoidingPath, sharedLaneLength, type RoutePoint, type RouteSegment } from "./orthogonal-route.js"
 import { assignPorts, type PortAnchor } from "./ports.js"
-import { NODE_WIDTH, TECH_CARD_SIZE, type AppEdge, type AppNode } from "./types.js"
+import { estimateCardLabelBoxes } from "./label-text.js"
+import type { AppEdge, AppNode } from "./types.js"
 
 export type EdgeRoute = {
   points: RoutePoint[]
@@ -26,21 +27,13 @@ const GAP_PAD_X = 3
 const GAP_PAD_Y = 1
 
 /**
- * Server-side stand-in for measured labels: name and subtitle each sit on one
- * centered line under the card. The editor replaces this with DOM measurements.
+ * Server-side stand-in for measured labels: name and subtitle each wrap to at
+ * most two centered lines under the card. The editor replaces this with DOM
+ * measurements.
  */
 export function estimateLabelBoxes(node: AppNode): Rect[] | undefined {
   if (node.type !== "tech") return undefined
-  const data = node.data as { name?: unknown; subtitle?: unknown }
-  const boxes: Rect[] = []
-  const line = (text: unknown, perChar: number, y: number, h: number) => {
-    if (typeof text !== "string" || !text) return
-    const w = Math.min(NODE_WIDTH, text.length * perChar + 8)
-    boxes.push({ x: (NODE_WIDTH - w) / 2, y, w, h })
-  }
-  line(data.name, 8.4, TECH_CARD_SIZE + 10, 19)
-  line(data.subtitle, 6.7, TECH_CARD_SIZE + 31, 14)
-  return boxes
+  return estimateCardLabelBoxes(node.data as { name?: unknown; subtitle?: unknown })
 }
 
 function ancestry(id: string, byId: Map<string, AppNode>): Set<string> {

@@ -1,11 +1,12 @@
 import { documentSchema } from "./document.js"
 import { EDGE_DASHED, EDGE_SOLID } from "../../src/lib/types.js"
+import { clippedLabels, NAME_CHARS_PER_LINE, SUBTITLE_CHARS_PER_LINE } from "../../src/lib/label-text.js"
 
 /** More arrow colors than this stop reading as a system. */
 const MAX_ARROW_COLORS = 4
 
 type Finding = {
-  code: "crowded-node" | "busy-boundary" | "dense-overview" | "pale-frame-accent" | "many-arrow-colors" | "missing-legend"
+  code: "crowded-node" | "busy-boundary" | "dense-overview" | "pale-frame-accent" | "many-arrow-colors" | "missing-legend" | "clipped-label"
   nodeIds: string[]
   edgeIds: string[]
   message: string
@@ -71,6 +72,11 @@ export function reviewDocument(input: unknown) {
   if (!document.legend && styles.size >= 2) {
     findings.push({ code: "missing-legend", nodeIds: [], edgeIds: [],
       message: `Arrows use ${styles.size} color and line-style combinations without document.legend. Add a legend entry for each, with the same color and style, so readers don't have to guess what they mean.` })
+  }
+  const clipped = techNodes.flatMap((node) => clippedLabels(node.data).map((field) => ({ node, field })))
+  if (clipped.length) {
+    findings.push({ code: "clipped-label", nodeIds: [...new Set(clipped.map((entry) => entry.node.id))], edgeIds: [],
+      message: `${clipped.map(({ node, field }) => `${node.data.name} (${field})`).join(", ")} won't fit on the card and will be cut off. Names wrap to two lines of about ${NAME_CHARS_PER_LINE} characters and subtitles to two lines of about ${SUBTITLE_CHARS_PER_LINE}. Shorten them and move detail into the note.` })
   }
   return {
     summary: { nodes: document.nodes.length, edges: document.edges.length, maxConnections: Math.max(0, ...[...incident.values()].map((ids) => ids.length)) },

@@ -1,3 +1,4 @@
+import { FIT_VIEW_PADDING } from "@/lib/fit-view"
 import { useEffect, useRef, useState } from "react"
 import {
   Background,
@@ -76,7 +77,7 @@ export function FlowCanvas() {
   useEffect(() => {
     if (nodes.length === 0 || hasFitted.current) return
     hasFitted.current = true
-    const timeout = window.setTimeout(() => fitView({ padding: 0.18, duration: 0 }), 60)
+    const timeout = window.setTimeout(() => fitView({ padding: FIT_VIEW_PADDING, duration: 0 }), 60)
     return () => window.clearTimeout(timeout)
   }, [fitView, nodes.length])
 
@@ -244,7 +245,7 @@ export function FlowCanvas() {
         connectionRadius={28}
         proOptions={{ hideAttribution: true }}
         fitView
-        fitViewOptions={{ padding: 0.18 }}
+        fitViewOptions={{ padding: FIT_VIEW_PADDING }}
         minZoom={0.15}
         maxZoom={2.5}
         snapToGrid={snapToGrid && !controlPressed}

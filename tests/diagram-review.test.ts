@@ -61,3 +61,13 @@ test("a rainbow of arrow colors is flagged, and a legend answers the missing-leg
   assert.equal(withLegend.includes("missing-legend"), false)
   assert.equal(withLegend.includes("many-arrow-colors"), false)
 })
+
+test("names and subtitles that won't fit in two lines are flagged before the card cuts them off", () => {
+  const fits = { ...node("api"), data: { ...node("api").data, name: "Projects API", subtitle: "zustand store + history" } }
+  const long = { ...node("sync"), data: { ...node("sync").data, name: "Share synchronization worker", subtitle: "queued sync" } }
+  const doc = { version: 1, title: "Labels", nodes: [fits, long], edges: [edge("e", "api", "sync")] }
+  const clipped = reviewDocument(doc).findings.filter((finding) => finding.code === "clipped-label")
+  assert.equal(clipped.length, 1)
+  assert.deepEqual(clipped[0].nodeIds, ["sync"])
+  assert.match(clipped[0].message, /Share synchronization worker \(name\)/)
+})

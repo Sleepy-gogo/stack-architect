@@ -14,7 +14,7 @@ type Obstacle = { rect: Rect; kind: "node" | "border" }
 
 let measureCtx: CanvasRenderingContext2D | null | undefined
 
-function measureLabel(text: string): { w: number; h: number } {
+export function measureLabel(text: string): { w: number; h: number } {
   if (measureCtx === undefined) {
     const canvas = document.createElement("canvas")
     measureCtx = canvas.getContext("2d")
@@ -118,8 +118,10 @@ export function findAutoLabelSpot(options: {
   nodes: AppNode[]
   /** Other edges' strokes are avoided; this edge's own id is excluded. */
   selfEdgeId: string
+  /** The route's corners; long horizontal runs get their middles tried too. */
+  points?: { x: number; y: number }[]
 }): { x: number; y: number } | null {
-  const { pathEl, labelText, nodes, selfEdgeId } = options
+  const { pathEl, labelText, nodes, selfEdgeId, points = [] } = options
   const labelSize = measureLabel(labelText)
 
   let total = 0
@@ -132,6 +134,18 @@ export function findAutoLabelSpot(options: {
 
   const obstacles = collectObstacles(nodes)
   const fractions = [0.5, 0.44, 0.56, 0.38, 0.62, 0.32, 0.68, 0.26, 0.74]
+  // A label reads best above a horizontal run with room for it, so the middle
+  // of every such run is a candidate even when it's off-center.
+  const lengths = points.slice(1).map((point, index) => Math.hypot(point.x - points[index].x, point.y - points[index].y))
+  const polyline = lengths.reduce((sum, length) => sum + length, 0)
+  let walked = 0
+  points.slice(1).forEach((point, index) => {
+    const length = lengths[index]
+    if (polyline > 0 && point.y === points[index].y && length >= labelSize.w + 24) {
+      fractions.push((walked + length / 2) / polyline)
+    }
+    walked += length
+  })
   // Hugging distance: half the text height plus breathing room, so the text
   // sits fully clear of the line rather than on top of it.
   const gap = labelSize.h / 2 + 5
@@ -181,6 +195,7 @@ export function findAutoLabelSpot(options: {
         scoreRect(rect, obstacles) +
         strokeHits(rect, otherPaths) * 25 +
         Math.abs(f - 0.5) * 12 +
+        (horizontal ? 0 : 10) +
         (o === 0 ? 8 : Math.abs(o) / 24)
       if (!best || score < best.score) best = { x: cx, y: cy, score }
     }

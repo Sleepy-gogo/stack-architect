@@ -1,3 +1,4 @@
+import { FIT_VIEW_PADDING } from "@/lib/fit-view"
 import { useRef, useState } from "react"
 import { useReactFlow } from "@xyflow/react"
 import {
@@ -118,7 +119,7 @@ export function TopBar({
     try {
       const doc = await readJsonFile(file)
       loadDocument(doc)
-      window.setTimeout(() => fitView({ padding: 0.18, duration: 300 }), 60)
+      window.setTimeout(() => fitView({ padding: FIT_VIEW_PADDING, duration: 300 }), 60)
       toast.add({ type: "success", title: "Diagram imported" })
     } catch (error) {
       toast.add({

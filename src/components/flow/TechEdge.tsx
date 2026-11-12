@@ -17,7 +17,7 @@ import {
   sideFromNorm,
   snapToSide,
 } from "@/lib/edge-anchors"
-import { findAutoLabelSpot } from "@/lib/edge-labels"
+import { findAutoLabelSpot, measureLabel } from "@/lib/edge-labels"
 import {
   getObstacleAvoidingPath,
   roundedPath,
@@ -150,13 +150,6 @@ export function TechEdge({
   const beforeTip = routePoints[routePoints.length - 2] ?? tip
   const run = Math.hypot(tip.x - beforeTip.x, tip.y - beforeTip.y) || 1
   const headPath = `M ${tip.x - ((tip.x - beforeTip.x) / run) * 0.5} ${tip.y - ((tip.y - beforeTip.y) / run) * 0.5} L ${tip.x} ${tip.y}`
-  const maskBounds = (() => {
-    const xs = [...routePoints.map((p) => p.x), ...gaps.flatMap((g) => [g.x, g.x + g.w])]
-    const ys = [...routePoints.map((p) => p.y), ...gaps.flatMap((g) => [g.y, g.y + g.h])]
-    const x = Math.min(...xs) - 24
-    const y = Math.min(...ys) - 24
-    return { x, y, w: Math.max(...xs) - x + 24, h: Math.max(...ys) - y + 24 }
-  })()
   const hitRef = useRef<SVGPathElement>(null)
   const [autoPos, setAutoPos] = useState<{ x: number; y: number } | null>(null)
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null)
@@ -184,8 +177,10 @@ export function TechEdge({
       labelText: d.label,
       nodes: useStore.getState().nodes,
       selfEdgeId: id,
+      points: routePoints,
     })
     if (spot) setAutoPos(spot)
+    // routePoints changes whenever path does.
   }, [path, d.label, hasCustomLabel, d.labelX, d.labelY, nodes, id])
 
   /* ---------- Label dragging ---------- */
@@ -227,6 +222,23 @@ export function TechEdge({
   }
 
   const shownPos = dragPos ?? customPos ?? autoPos ?? { x: labelX, y: labelY }
+
+  // The line breaks where its own label sits, so a label on a vertical run
+  // never has the stroke running between its letters.
+  const labelGap = d.label
+    ? (() => {
+        const size = measureLabel(d.label)
+        return { x: shownPos.x - size.w / 2 - 3, y: shownPos.y - size.h / 2 - 2, w: size.w + 6, h: size.h + 4 }
+      })()
+    : null
+  const allGaps = labelGap ? [...gaps, labelGap] : gaps
+  const maskBounds = (() => {
+    const xs = [...routePoints.map((p) => p.x), ...allGaps.flatMap((g) => [g.x, g.x + g.w])]
+    const ys = [...routePoints.map((p) => p.y), ...allGaps.flatMap((g) => [g.y, g.y + g.h])]
+    const x = Math.min(...xs) - 24
+    const y = Math.min(...ys) - 24
+    return { x, y, w: Math.max(...xs) - x + 24, h: Math.max(...ys) - y + 24 }
+  })()
 
   /* ---------- Endpoint drag handlers ---------- */
 
@@ -357,10 +369,10 @@ export function TechEdge({
           if (!dragRef.current) setHovered(false)
         }}
       />
-      {gaps.length > 0 ? (
+      {allGaps.length > 0 ? (
         <mask id={gapMaskId} maskUnits="userSpaceOnUse" x={maskBounds.x} y={maskBounds.y} width={maskBounds.w} height={maskBounds.h}>
           <rect x={maskBounds.x} y={maskBounds.y} width={maskBounds.w} height={maskBounds.h} fill="white" />
-          {gaps.map((gap, index) => (
+          {allGaps.map((gap, index) => (
             <rect key={index} x={gap.x} y={gap.y} width={gap.w} height={gap.h} rx={3} fill="black" />
           ))}
         </mask>
@@ -372,7 +384,7 @@ export function TechEdge({
         strokeWidth={selected ? 3 : 2.25}
         strokeLinecap="round"
         strokeDasharray={isDashed ? "7 6" : undefined}
-        mask={gaps.length > 0 ? `url(#${gapMaskId})` : undefined}
+        mask={allGaps.length > 0 ? `url(#${gapMaskId})` : undefined}
         style={{ pointerEvents: "none", stroke: color }}
       />
       {/* The head is its own element so a label gap never clips it. */}
@@ -417,7 +429,8 @@ export function TechEdge({
               } font-mono text-[11.5px] leading-none font-semibold tracking-[0.03em] transition-opacity hover:opacity-90`}
               style={{
                 transform: `translate(-50%, -50%) translate(${shownPos.x}px, ${shownPos.y}px)`,
-                color,
+                // Labels lean toward the text color so muted arrows still read.
+                color: `color-mix(in oklch, ${color} 72%, var(--foreground))`,
               }}
             >
               <span>{d.label}</span>

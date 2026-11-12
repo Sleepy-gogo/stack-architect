@@ -1,5 +1,5 @@
 import { Position } from "@xyflow/react"
-import { simplifyRoute, type RoutePoint } from "./orthogonal-route"
+import { simplifyRoute, type RoutePoint } from "./orthogonal-route.js"
 
 /** Full polyline, including its original endpoints, stored in flow coordinates. */
 export function readRoute(value: unknown): RoutePoint[] | null {

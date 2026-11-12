@@ -17,6 +17,8 @@ That composition works because the viewer can follow the main request, distingui
 | Connect to a frame when the whole subsystem is the destination. | Repeat the same external connection to several children. |
 | Use the actual brand icon, including in group headings. | Use a bell for every integration or a monitor for a known framework. |
 | Use short role names with the technology or responsibility in the subtitle. | Repeat the same words in the name, subtitle and edge label. |
+| Name a deployment frame after its provider only when the repository confirms it, for example through a `vercel.json`, a deploy workflow or infrastructure code. Otherwise use the runtime, such as `Server`, and put the likely provider in a note. | Draw a provider boundary from a README mention, then contradict it in a note. |
+| Show how the user reaches the result: if an agent or job produces something, connect it to where people see it. | Leave the last step of the main journey to a note. |
 | Give tools their own group and leave most tooling unconnected. | Imply that formatters, IDEs or package managers are runtime services. |
 | Use a small set of colors consistently for relationship families. | Color every arrow differently or leave a dense diagram entirely blue. |
 | Label a return edge `payment status` or `webhook`; make secondary flows dashed. | Let dashed lines ambiguously mean both asynchronous and unverified. |

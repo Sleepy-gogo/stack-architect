@@ -23,17 +23,34 @@ export function TechNode({ id, data, selected }: NodeProps) {
   const hasIconPlate = isDark && d.iconPlate === true
   const nameRef = useRef<HTMLSpanElement>(null)
   const subtitleRef = useRef<HTMLSpanElement>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
 
-  // Arrows leave a gap where they pass behind these lines. Offsets are layout
-  // sizes, unaffected by zoom, so this only reruns when the text changes.
+  // Arrows leave a gap where they pass behind these lines. Boxes are stored in
+  // node units, divided by the zoom, so this only reruns when the text changes.
   useLayoutEffect(() => {
     const measure = () => {
+      const root = rootRef.current
+      if (!root) return
+      const origin = root.getBoundingClientRect()
+      const scale = origin.width / (root.offsetWidth || 1) || 1
       const boxes = [nameRef.current, subtitleRef.current].flatMap((el) => {
         if (!el) return []
-        // Ink width, not the clamped box: short names leave the sides open.
+        // One box per visible line, as wide as its ink: short lines leave the
+        // sides open, and clamped lines don't count.
+        const bounds = el.getBoundingClientRect()
         const ink = el.firstElementChild instanceof HTMLElement ? el.firstElementChild : el
-        const w = Math.min(el.offsetWidth, ink.offsetWidth)
-        return [{ x: el.offsetLeft + (el.offsetWidth - w) / 2, y: el.offsetTop, w, h: el.offsetHeight }]
+        return Array.from(ink.getClientRects())
+          .filter((line) => line.width > 0 && line.top < bounds.bottom - 1)
+          .map((line) => {
+            const left = Math.max(line.left, bounds.left)
+            const right = Math.min(line.right, bounds.right)
+            return {
+              x: (left - origin.left) / scale,
+              y: (line.top - origin.top) / scale,
+              w: Math.max(0, right - left) / scale,
+              h: line.height / scale,
+            }
+          })
       })
       setLabelBoxes(id, boxes)
     }
@@ -45,7 +62,7 @@ export function TechNode({ id, data, selected }: NodeProps) {
   useLayoutEffect(() => () => forgetLabelBoxes(id), [id])
 
   return (
-    <div className="group/node relative flex w-[148px] flex-col items-center gap-2.5">
+    <div ref={rootRef} className="group/node relative flex w-[148px] flex-col items-center gap-2.5">
       <NodeActions nodeId={id} visible={selected === true} />
 
       <div
@@ -94,7 +111,7 @@ export function TechNode({ id, data, selected }: NodeProps) {
       <div className="flex w-full flex-col items-center gap-0.5 text-center">
         <span
           ref={nameRef}
-          className="halo-text relative line-clamp-2 max-w-full text-[15px] leading-tight font-semibold tracking-[-0.012em] text-foreground"
+          className="halo-text relative line-clamp-2 max-w-full text-[15px] [overflow-wrap:anywhere] leading-tight font-semibold tracking-[-0.012em] text-foreground"
           data-label={d.name}
           title={d.name}
         >
@@ -103,7 +120,7 @@ export function TechNode({ id, data, selected }: NodeProps) {
         {d.subtitle ? (
           <span
             ref={subtitleRef}
-            className="halo-text relative block max-w-full truncate font-mono text-[11px] leading-tight tracking-[0.01em] text-muted-foreground"
+            className="halo-text relative line-clamp-2 max-w-full font-mono text-[11px] [overflow-wrap:anywhere] leading-tight tracking-[0.01em] text-muted-foreground"
             data-label={d.subtitle}
             title={d.subtitle}
           >

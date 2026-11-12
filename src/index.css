@@ -116,8 +116,8 @@
   --sidebar-ring: oklch(0.68 0.17 262);
 
   --canvas: oklch(0.155 0.012 262);
-  --grid-minor: oklch(1 0 0 / 4.5%);
-  --grid-major: oklch(1 0 0 / 9%);
+  --grid-minor: oklch(1 0 0 / 3.5%);
+  --grid-major: oklch(1 0 0 / 7%);
 
   /* Ink is unreadable on the dark canvas, so it flips to near-white. */
   --swatch-ink: #e2e8f0;
@@ -450,6 +450,17 @@ body.connecting-edge .react-flow__handle.surface-handle {
   -webkit-text-stroke: 3px var(--edge-label-halo, #fff);
   color: transparent;
   pointer-events: none;
+}
+
+/* The duplicate layer clamps and ellipsizes like the text it outlines, so a
+   cut-off label doesn't leave the hidden characters' outline behind. */
+.halo-text::before {
+  display: inherit;
+  -webkit-box-orient: inherit;
+  -webkit-line-clamp: inherit;
+  overflow: hidden;
+  text-overflow: inherit;
+  white-space: inherit;
 }
 
 .edge-label > span,

@@ -22,8 +22,8 @@ const node = z.discriminatedUnion("type", [
     type: z.literal("tech"),
     data: z.object({
       slug: iconSlug.describe("Exact slug from search_architecture_icons. Prefer the actual brand, e.g. astro, sentry, mercadopago."),
-      name: z.string().trim().min(1).max(80).describe("Short display name; about 18 characters fit on one line."),
-      subtitle: z.string().max(40).describe("A few lowercase words for the role, e.g. \"api routes\" or \"primary store\". Put detail in note."),
+      name: z.string().trim().min(1).max(80).describe("Short display name. Wraps to two lines of about 17 characters; longer names are cut off."),
+      subtitle: z.string().max(40).describe("A few lowercase words for the role, e.g. \"api routes\" or \"primary store\". Wraps to two lines of about 22 characters. Put detail in note."),
       category: z.enum(categories.map((entry) => entry.id)),
       note: z.string().max(2000).optional(),
       colorOverride: color.optional(),
@@ -62,7 +62,7 @@ const legend = z.object({
     color: color.optional().describe("The colorOverride used by the arrows this entry explains. Omit for the default color of the style."),
     style: z.enum(["solid", "dashed"]).optional(),
   }).strict()).min(1).max(MAX_LEGEND_ITEMS),
-}).strict().describe("Explains the arrow colors and styles. Rendered as a legend card under the diagram; prefer this over a text node.")
+}).strict().describe("Explains the arrow colors and styles. Rendered as a legend card beside or under the diagram; prefer this over a text node.")
 
 export const documentSchema = z.object({
   version: z.literal(1),
@@ -76,7 +76,7 @@ export const documentSchema = z.object({
     type: z.literal("tech").optional(),
     data: z.object({
       label: z.string().max(120).optional(),
-      style: z.enum(["solid", "dashed"]).optional().describe("Solid for the main flow; dashed for async, callbacks or secondary dependencies. Explain the convention in a text legend. Dashed does not imply uncertainty."),
+      style: z.enum(["solid", "dashed"]).optional().describe("Solid for the main flow; dashed for async, callbacks or secondary dependencies. Explain the convention in document.legend. Dashed does not imply uncertainty."),
       colorOverride: color.optional().describe("Arrow and label color, e.g. #8b5cf6 for client traffic. Use a small consistent palette by relationship type."),
     }).strict().optional(),
   }).strict()).max(160),
