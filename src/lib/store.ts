@@ -16,6 +16,7 @@ import {
   type TechNodeData,
 } from "./types"
 import { techCatalog } from "./catalog"
+import { legendItemsFromEdges } from "./legend"
 import { absolutePosition, nodeSize } from "./geometry"
 
 const STORAGE_KEY = "tech-stack-architect:doc"
@@ -76,7 +77,7 @@ function collectDescendants(ids: string[], nodes: AppNode[]): Set<string> {
   return removed
 }
 
-export type Tool = "select" | "pan" | "frame" | "text"
+export type Tool = "select" | "pan" | "frame" | "text" | "legend"
 
 type Snapshot = { nodes: AppNode[]; edges: AppEdge[] }
 
@@ -110,6 +111,8 @@ type State = {
   addTechNode: (slug: string, x: number, y: number, parentId?: string) => string
   addGroupNode: (x: number, y: number, w?: number, h?: number) => string
   addTextNode: (x: number, y: number) => string
+  /** A legend prefilled with one entry per line style used on the canvas. */
+  addLegendNode: (x: number, y: number) => string
   updateNodeData: (id: string, patch: Record<string, unknown>) => void
   moveNode: (id: string, axis: "x" | "y", value: number) => void
   setNodeFlag: (id: string, flag: "hidden" | "locked", value: boolean) => void
@@ -377,6 +380,23 @@ export const useStore = create<State>((set, get) => {
         position: { x, y },
         data: { text: "Double-click to edit this text", size: "md" },
         width: 200,
+      }
+      commit({
+        nodes: [...get().nodes.map(deselect), node],
+        selectedNodeId: id,
+        selectedEdgeId: null,
+      })
+      return id
+    },
+
+    addLegendNode: (x, y) => {
+      const id = genId("legend")
+      const items = legendItemsFromEdges(get().edges)
+      const node: AppNode = {
+        id,
+        type: "legend",
+        position: { x, y },
+        data: { items: items.length > 0 ? items : [{ label: "Request", style: "solid" }] },
       }
       commit({
         nodes: [...get().nodes.map(deselect), node],

@@ -5,6 +5,7 @@ import { FrameInspector } from "./FrameInspector"
 import { MultiInspector } from "./MultiInspector"
 import { TechInspector } from "./TechInspector"
 import { TextInspector } from "./TextInspector"
+import { LegendInspector } from "./LegendInspector"
 
 export function Inspector() {
   const nodes = useStore((s) => s.nodes)
@@ -21,5 +22,6 @@ export function Inspector() {
   if (!node) return <EmptyInspector />
   if (node.type === "group") return <FrameInspector node={node} />
   if (node.type === "text") return <TextInspector node={node} />
+  if (node.type === "legend") return <LegendInspector node={node} />
   return <TechInspector node={node} />
 }

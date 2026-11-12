@@ -116,6 +116,9 @@ export function useEditorShortcuts() {
         case "n":
           store.setTool("text")
           break
+        case "l":
+          store.setTool("legend")
+          break
       }
     }
 

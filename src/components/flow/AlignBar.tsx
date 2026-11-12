@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { useReactFlow } from "@xyflow/react"
 import {
   AlignCenterHorizontalIcon,
@@ -13,7 +14,7 @@ import {
   SparklesIcon,
 } from "lucide-react"
 import { useStore } from "@/lib/store"
-import { layoutDagre } from "@/lib/layout"
+import { layoutDocument } from "@/lib/layout"
 import { cn } from "@/lib/utils"
 import { BarButton } from "./BarButton"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -52,9 +53,16 @@ export function AlignBar() {
   const canAlign = selectedCount >= 2
   const canDistribute = selectedCount >= 3
 
-  const autoArrange = () => {
-    loadDocument({ ...layoutDagre({ nodes, edges }), title: undefined })
-    window.setTimeout(() => fitView({ padding: 0.18, duration: 300 }), 60)
+  const [arranging, setArranging] = useState(false)
+  const autoArrange = async () => {
+    setArranging(true)
+    try {
+      const laidOut = await layoutDocument({ nodes, edges })
+      loadDocument({ ...laidOut, title: undefined })
+      window.setTimeout(() => fitView({ padding: 0.18, duration: 300 }), 60)
+    } finally {
+      setArranging(false)
+    }
   }
 
   return (
@@ -68,8 +76,9 @@ export function AlignBar() {
           render={
             <button
               type="button"
-              onClick={autoArrange}
-              disabled={nodes.length === 0}
+              onClick={() => void autoArrange()}
+              disabled={nodes.length === 0 || arranging}
+              aria-busy={arranging}
               className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40"
             />
           }
@@ -136,7 +145,7 @@ export function AlignBar() {
         </TooltipTrigger>
         <TooltipContent>
           {snapToGrid ? "Grid snapping is on. " : "Grid snapping is off. "}
-          Hold Ctrl while dragging for alignment and equal-spacing guides.
+          Cards snap into line with connected cards as you drag. Hold Ctrl to move freely.
         </TooltipContent>
       </Tooltip>
 

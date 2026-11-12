@@ -29,12 +29,15 @@ import { LayersPanel } from "./LayersPanel"
 import { CanvasEmptyState } from "./CanvasEmptyState"
 import { ConnectionFlag } from "./ConnectionFlag"
 import { SmartGuides } from "./SmartGuides"
+import { LegendNode } from "./LegendNode"
 import { computeSmartSnap, type SmartGuide } from "@/lib/smart-guides"
+import { setDragging } from "@/lib/label-metrics"
 
 const nodeTypes = {
   tech: TechNode,
   group: GroupNode,
   text: TextNode,
+  legend: LegendNode,
 }
 
 const edgeTypes = {
@@ -56,6 +59,7 @@ export function FlowCanvas() {
   const addTechNode = useStore((s) => s.addTechNode)
   const addGroupNode = useStore((s) => s.addGroupNode)
   const addTextNode = useStore((s) => s.addTextNode)
+  const addLegendNode = useStore((s) => s.addLegendNode)
   const reparentNodes = useStore((s) => s.reparentNodes)
   const duplicateSelectionForDrag = useStore((s) => s.duplicateSelectionForDrag)
   const nudgeDraggedNodes = useStore((s) => s.nudgeDraggedNodes)
@@ -66,6 +70,8 @@ export function FlowCanvas() {
   const setTool = useStore((s) => s.setTool)
   const snapToGrid = useStore((s) => s.snapToGrid)
   const gridSize = useStore((s) => s.gridSize)
+  // New objects land on the same grid that dragging snaps to.
+  const snapValue = (value: number) => (snapToGrid ? Math.round(value / gridSize) * gridSize : Math.round(value))
 
   useEffect(() => {
     if (nodes.length === 0 || hasFitted.current) return
@@ -112,20 +118,23 @@ export function FlowCanvas() {
     const frame = findFrameAt(position.x, position.y, useStore.getState().nodes)
     addTechNode(
       slug,
-      Math.round(position.x - NODE_WIDTH / 2),
-      Math.round(position.y - NODE_HEIGHT / 2),
+      snapValue(position.x - NODE_WIDTH / 2),
+      snapValue(position.y - NODE_HEIGHT / 2),
       frame?.id,
     )
   }
 
   const onNodeDragStart: OnNodeDrag<AppNode> = (event, node, dragged) => {
+    setDragging(true)
     if (tool !== "select" || !("altKey" in event) || !event.altKey) return
     duplicateSelectionForDrag(dragged.length > 0 ? dragged.map((item) => item.id) : [node.id])
   }
 
+  // Alignment snapping is always on while dragging; holding Ctrl moves freely,
+  // without the grid or guides.
   const onNodeDrag: OnNodeDrag<AppNode> = (event, node, dragged) => {
     const ctrlKey = "ctrlKey" in event && event.ctrlKey
-    if (tool !== "select" || (!ctrlKey && !controlPressed)) {
+    if (tool !== "select" || ctrlKey || controlPressed) {
       lastSmartSnap.current = null
       if (smartGuides.length > 0) setSmartGuides([])
       return
@@ -138,7 +147,7 @@ export function FlowCanvas() {
     const proposedNodes = useStore
       .getState()
       .nodes.map((item) => draggedById.get(item.id) ?? item)
-    const snap = computeSmartSnap(proposedNodes, draggedIds, 8 / getZoom())
+    const snap = computeSmartSnap(proposedNodes, draggedIds, 8 / getZoom(), useStore.getState().edges)
     if (!snap) {
       lastSmartSnap.current = null
       if (smartGuides.length > 0) setSmartGuides([])
@@ -150,6 +159,7 @@ export function FlowCanvas() {
   }
 
   const onNodeDragStop: OnNodeDrag<AppNode> = (_e, _node, dragged) => {
+    setDragging(false)
     const finalSnap = lastSmartSnap.current
     lastSmartSnap.current = null
     if (finalSnap) nudgeDraggedNodes(finalSnap.ids, finalSnap.dx, finalSnap.dy)
@@ -188,10 +198,11 @@ export function FlowCanvas() {
   }
 
   const onPaneClick = (e: React.MouseEvent) => {
-    if (tool === "frame" || tool === "text") {
+    if (tool === "frame" || tool === "text" || tool === "legend") {
       const position = screenToFlowPosition({ x: e.clientX, y: e.clientY })
-      if (tool === "frame") addGroupNode(Math.round(position.x), Math.round(position.y))
-      else addTextNode(Math.round(position.x), Math.round(position.y))
+      if (tool === "frame") addGroupNode(snapValue(position.x), snapValue(position.y))
+      else if (tool === "legend") addLegendNode(snapValue(position.x), snapValue(position.y))
+      else addTextNode(snapValue(position.x), snapValue(position.y))
       setTool("select")
       return
     }

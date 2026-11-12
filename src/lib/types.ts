@@ -71,7 +71,21 @@ export type TextNodeData = {
   [key: string]: unknown
 }
 
-export type AppNodeData = TechNodeData | GroupNodeData | TextNodeData
+/** One line style explained by a legend. */
+export type LegendItem = {
+  label: string
+  /** Stroke color; defaults to the style's default color. */
+  color?: string
+  style?: EdgeStyle
+}
+
+export type LegendNodeData = {
+  title?: string
+  items: LegendItem[]
+  [key: string]: unknown
+}
+
+export type AppNodeData = TechNodeData | GroupNodeData | TextNodeData | LegendNodeData
 
 export type AppNode = Node<AppNodeData>
 
@@ -135,4 +149,8 @@ export function isGroupNode(node: AppNode): boolean {
 
 export function isTextNode(node: AppNode): boolean {
   return node.type === "text"
+}
+
+export function isLegendNode(node: AppNode): boolean {
+  return node.type === "legend"
 }

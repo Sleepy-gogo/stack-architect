@@ -5,6 +5,7 @@ import {
   EyeIcon,
   EyeOffIcon,
   FrameIcon,
+  ListIcon,
   LockIcon,
   LockOpenIcon,
   TypeIcon,
@@ -107,6 +108,8 @@ export function LayersPanel() {
                           <FrameIcon className="size-3.5" aria-hidden="true" />
                         ) : node.type === "text" ? (
                           <TypeIcon className="size-3.5" aria-hidden="true" />
+                        ) : node.type === "legend" ? (
+                          <ListIcon className="size-3.5" aria-hidden="true" />
                         ) : (
                           <BrandIcon slug={(node.data as TechNodeData).slug} size={14} />
                         )}

@@ -1,8 +1,10 @@
-import { NODE_HEIGHT, NODE_WIDTH, TECH_CARD_SIZE, type AppNode } from "./types.js"
+import { legendSize } from "./legend.js"
+import { NODE_HEIGHT, NODE_WIDTH, TECH_CARD_SIZE, type AppNode, type LegendNodeData } from "./types.js"
 
 export type Rect = { x: number; y: number; w: number; h: number }
 
 export function nodeSize(node: AppNode): { w: number; h: number } {
+  if (node.type === "legend") return legendSize(node.data as LegendNodeData)
   return {
     w: (node.width ?? (node.style?.width as number) ?? NODE_WIDTH) as number,
     h: (node.height ?? (node.style?.height as number) ?? NODE_HEIGHT) as number,
@@ -68,7 +70,7 @@ export function findConnectableAt(
   let frameHit: AppNode | null = null
   for (let i = nodes.length - 1; i >= 0; i -= 1) {
     const n = nodes[i]
-    if (n.hidden || n.type === "text") continue
+    if (n.hidden || n.type === "text" || n.type === "legend") continue
     if (n.type === "group") {
       if (!frameHit && pointInRect(px, py, absoluteRect(n, map))) frameHit = n
       continue

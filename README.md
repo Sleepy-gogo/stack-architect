@@ -6,14 +6,17 @@ Stack Architect is a browser editor for tech stack diagrams. Add services, group
 
 The editor works without an account and saves changes locally. Turso provides optional project sharing. A remote MCP endpoint lets coding agents create diagrams from repositories.
 
+> [!TIP]
+> Don't need to edit the diagram afterwards? Try [stack-diagram](https://github.com/caru-ini/stack-diagram) by [caru-ini](https://github.com/caru-ini). It's an agent skill that turns a one-sentence description of your stack into a polished diagram with official logos, including AWS, Google Cloud and Azure icons. It exports self-contained HTML, PNG, or a React component. It's a great choice when you want a finished image rather than an editable canvas.
+
 ## Features
 
 - Several hundred brand icons from [svgl](https://svgl.app), with a curated catalog for common services.
-- Tech cards, resizable group frames, and text notes.
-- Connections that choose sensible endpoints and keep labels clear of nodes. Endpoints can also be pinned manually.
-- Dagre auto-layout for arranging a rough diagram into layers.
+- Tech cards, resizable group frames, text notes, and legends that explain line colors and styles.
+- Connections that run straight whenever their cards line up, spread apart on shared sides, avoid each other, and leave a gap where they pass behind a label. Endpoints can also be pinned manually.
+- Auto-layout with [ELK](https://eclipse.dev/elk/) that arranges the whole diagram left to right, nested frames included.
 - Undo and redo with 60 snapshots, copy and paste, multi-select, keyboard shortcuts, and grid snapping.
-- Alt-drag duplication plus Ctrl-held alignment and equal-spacing guides.
+- Alignment and equal-spacing guides while dragging, with priority for connected cards. Hold Ctrl to move freely; Alt-drag duplicates.
 - Local autosave, JSON import, and PNG, SVG, or JSON export.
 - Short share links with queued server sync for the browser that created the link.
 - Repository diagrams through MCP and the included `stack-architect` skill.
@@ -32,7 +35,7 @@ Rate-limit counters live in Turso, so they apply across server instances. The se
 
 ## MCP
 
-The MCP server exposes `search_architecture_icons`, `review_architecture_document` and `create_architecture_project` at `/api/mcp`. Your agent analyzes the repository, looks up exact icons from the editor's catalog, reviews the draft for crowded nodes, busy boundaries and pale frame accents, and sends a `GraphDocument` with styled relationships. Stack Architect validates it, arranges the nodes and connection points, saves it in Turso, and returns a project link. Icon search and draft review are read-only and do not consume the creation quota. Review findings guide composition; they do not prove a diagram has no crossings.
+The MCP server exposes `search_architecture_icons`, `review_architecture_document` and `create_architecture_project` at `/api/mcp`. Your agent analyzes the repository, looks up exact icons from the editor's catalog, reviews the draft for crowded nodes, busy boundaries, pale frame accents and arrow colors without a legend, and sends a `GraphDocument` with styled relationships. Stack Architect validates it, arranges the nodes and connection points, saves it in Turso, and returns a project link. Icon search and draft review are read-only and do not consume the creation quota. Review findings guide composition; they do not prove a diagram has no crossings.
 
 The endpoint uses stateless Streamable HTTP and runs in the same Nitro deployment as the editor. Repository analysis stays with the agent; the server receives only the diagram.
 
@@ -129,7 +132,7 @@ npm run lint
 npm run build
 ```
 
-Tests cover public MCP access, protocol handling, validation, limits, and layout using in-memory persistence. The build also checks TypeScript.
+Tests cover public MCP access, protocol handling, validation, limits, and layout using in-memory persistence. `tests/layout-quality.test.ts` lays out sample diagrams and fails if straight arrows, bends, crossings or label collisions regress, or if routing gets too slow to drag. Set `LAYOUT_PREVIEW_DIR` to a folder to also write an SVG preview of each sample. The build also checks TypeScript.
 
 ## Deploy
 

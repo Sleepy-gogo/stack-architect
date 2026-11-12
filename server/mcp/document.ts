@@ -1,7 +1,6 @@
 import { z } from "zod"
-import { layoutDagre } from "../../src/lib/layout.js"
-import { nodeSize } from "../../src/lib/geometry.js"
-import { layoutEdgeAnchors } from "../../src/lib/layout-anchors.js"
+import { layoutDocument } from "../../src/lib/layout.js"
+import { MAX_LEGEND_ITEMS } from "../../src/lib/legend.js"
 import { categories, techCatalog } from "../../src/lib/catalog.js"
 import type { AppNode, GraphDocument } from "../../src/lib/types.js"
 
@@ -23,8 +22,8 @@ const node = z.discriminatedUnion("type", [
     type: z.literal("tech"),
     data: z.object({
       slug: iconSlug.describe("Exact slug from search_architecture_icons. Prefer the actual brand, e.g. astro, sentry, mercadopago."),
-      name: z.string().trim().min(1).max(80),
-      subtitle: z.string().max(160),
+      name: z.string().trim().min(1).max(80).describe("Short display name; about 18 characters fit on one line."),
+      subtitle: z.string().max(40).describe("A few lowercase words for the role, e.g. \"api routes\" or \"primary store\". Put detail in note."),
       category: z.enum(categories.map((entry) => entry.id)),
       note: z.string().max(2000).optional(),
       colorOverride: color.optional(),
@@ -56,9 +55,19 @@ const node = z.discriminatedUnion("type", [
 // A bounded GraphDocument input profile, not another diagram format. Positions
 // and dimensions are calculated on the server; arbitrary React Flow props aren't accepted.
 // Legacy positions are accepted for compatibility but are not layout constraints.
+const legend = z.object({
+  title: z.string().trim().min(1).max(40).optional(),
+  items: z.array(z.object({
+    label: z.string().trim().min(1).max(40),
+    color: color.optional().describe("The colorOverride used by the arrows this entry explains. Omit for the default color of the style."),
+    style: z.enum(["solid", "dashed"]).optional(),
+  }).strict()).min(1).max(MAX_LEGEND_ITEMS),
+}).strict().describe("Explains the arrow colors and styles. Rendered as a legend card under the diagram; prefer this over a text node.")
+
 export const documentSchema = z.object({
   version: z.literal(1),
   title: z.string().trim().min(1).max(120),
+  legend: legend.optional(),
   nodes: z.array(node).min(1).max(80),
   edges: z.array(z.object({
     id,
@@ -94,52 +103,40 @@ export const documentSchema = z.object({
   }
 })
 
-export function prepareDocument(input: unknown): GraphDocument {
+const TEXT_WIDTH = 200
+const TEXT_LINE = { sm: 20, md: 26, lg: 28 } as const
+const TEXT_CHARS = { sm: 26, md: 22, lg: 16 } as const
+
+/** Text nodes render 200px wide; estimate the height their text wraps to. */
+function textSize(text: string, size: "sm" | "md" | "lg" = "md"): { width: number; height: number } {
+  const lines = text.split("\n").reduce((sum, line) => sum + Math.max(1, Math.ceil(line.length / TEXT_CHARS[size])), 0)
+  return { width: TEXT_WIDTH, height: Math.ceil((lines * TEXT_LINE[size] + 8) / 8) * 8 }
+}
+
+export async function prepareDocument(input: unknown): Promise<GraphDocument> {
   const parsed = documentSchema.parse(input)
   const nodes: AppNode[] = parsed.nodes.map((entry) => ({
     ...entry,
     position: { x: 0, y: 0 },
-    ...(entry.type === "text" ? { width: 320, height: 180 } : {}),
+    ...(entry.type === "text" ? textSize(entry.data.text, entry.data.size) : {}),
   }))
-  const edges = parsed.edges.map((edge) => ({ ...edge, type: "tech" }))
-  const byId = new Map(nodes.map((entry) => [entry.id, entry]))
-
-  // Lay out children before their containing frame. The editor's layout treats
-  // frames as atomic, so invoking it only once would stack all children at (0, 0).
-  const arrange = (parentId?: string): AppNode[] => {
-    const children = nodes.filter((entry) => entry.parentId === parentId)
-    for (const child of children) {
-      if (child.type !== "group") continue
-      const contents = arrange(child.id)
-      child.width = Math.max(240, ...contents.map((entry) => entry.position.x + nodeSize(entry).w + 32))
-      child.height = Math.max(160, ...contents.map((entry) => entry.position.y + nodeSize(entry).h + 32))
-      child.style = { width: child.width, height: child.height }
-    }
-    const ids = new Set(children.map((entry) => entry.id))
-    const root = (key: string): string => {
-      let entry = byId.get(key)
-      while (entry?.parentId && !ids.has(entry.id)) entry = byId.get(entry.parentId)
-      return entry?.id ?? key
-    }
-    const local = layoutDagre({
-      nodes: children.map((entry) => ({ ...entry, parentId: undefined })),
-      edges: edges.map((edge) => ({ ...edge, source: root(edge.source), target: root(edge.target) })),
-    })
-    for (const placed of local.nodes) {
-      const original = byId.get(placed.id)!
-      original.position = { x: placed.position.x + (parentId ? 32 : 0), y: placed.position.y + (parentId ? 64 : 0) }
-    }
-    return children
+  if (parsed.legend) {
+    const taken = new Set(nodes.map((entry) => entry.id))
+    let legendId = "legend"
+    for (let suffix = 2; taken.has(legendId); suffix += 1) legendId = `legend-${suffix}`
+    nodes.push({ id: legendId, type: "legend", position: { x: 0, y: 0 }, data: { ...parsed.legend } })
   }
-  arrange()
+  const edges = parsed.edges.map((edge) => ({ ...edge, type: "tech" }))
+
+  const laidOut = await layoutDocument({ nodes, edges })
   // React Flow requires parents to precede their children.
   const ordered: AppNode[] = []
   const append = (parentId?: string) => {
-    for (const entry of nodes.filter((item) => item.parentId === parentId)) {
+    for (const entry of laidOut.nodes.filter((item) => item.parentId === parentId)) {
       ordered.push(entry)
       append(entry.id)
     }
   }
   append()
-  return { version: 1, title: parsed.title, nodes: ordered, edges: layoutEdgeAnchors(ordered, edges) }
+  return { version: 1, title: parsed.title, nodes: ordered, edges: laidOut.edges }
 }

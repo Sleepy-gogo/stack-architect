@@ -66,7 +66,7 @@ Choose the convention that fits the repository; this palette is an example, not 
 - Payments or callbacks: blue `#0284c7`, dashed for asynchronous returns.
 - Tooling, imports and telemetry: muted slate `#64748b`, usually dashed.
 
-Usually three or four colors suffice. Labels and line styles must still explain the relationships without color. Add a small `text` node as a legend when the conventions need explanation. The supported line styles are `solid` and `dashed`; do not send `dotted`.
+Usually three or four colors suffice. Labels and line styles must still explain the relationships without color. When the diagram uses more than one color or line style, add `document.legend` with one item per combination, using the same color and style as its arrows. Don't build a legend out of a `text` node. The supported line styles are `solid` and `dashed`; do not send `dotted`.
 
 Use group colors to mark boundaries without competing with the arrows. `group.data.color` supplies the accent for the border and heading; the editor derives a 5% background tint and adjusts the stroke and heading for the theme. Use medium tones, not pastel background colors such as `#ddd6fe`, `#ccfbf1`, or near-white `#f1f5f9`. Do not try to emulate a filled diagram box by sending a pale accent. Use `dark` cards and `iconPlate` only where they improve logo contrast. Notes hold evidence and caveats; they are not visible canvas prose.
 

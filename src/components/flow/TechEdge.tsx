@@ -8,7 +8,7 @@ import {
 import { useStore } from "@/lib/store"
 import { resolveSwatch } from "@/lib/swatches"
 import { EDGE_DASHED, EDGE_SOLID, type TechEdgeData } from "@/lib/types"
-import { absoluteRect, anchorRect, findConnectableAt, type Rect } from "@/lib/geometry"
+import { anchorRect, findConnectableAt } from "@/lib/geometry"
 import {
   autoSide,
   projectToPerimeter,
@@ -25,9 +25,9 @@ import {
   type RoutePoint,
 } from "@/lib/orthogonal-route"
 import { readRoute, resolveManualRoute } from "@/lib/editable-route"
+import { routeObstacles, stubLength } from "@/lib/edge-routing"
+import { cachedRoutes, labelBoxesFor, useLabelMetrics } from "@/lib/label-metrics"
 import { EdgeRouteControls } from "./EdgeRouteControls"
-
-const SIBLING_SPREAD = 18
 
 type End = "source" | "target"
 type NormPoint = { x: number; y: number }
@@ -88,93 +88,75 @@ export function TechEdge({
   const effTgtRect =
     activeDrag === "target" && overNode ? anchorRect(overNode, byId) : tgtRect
 
-  // Each end attaches to one of the four canonical points of its card: either
-  // a spot the user placed it at, or the geometrically best side, re-evaluated
-  // as the nodes move.
-  let sx = sourceX
-  let sy = sourceY
-  let sp = sourcePosition ?? Position.Right
-  let tx = targetX
-  let ty = targetY
-  let tp = targetPosition ?? Position.Left
+  // Every arrow's ports and lanes come from one shared routing pass, so arrows
+  // straighten, spread and avoid each other together. Only an endpoint drag
+  // routes this arrow on its own, as a preview.
+  const labelVersion = useLabelMetrics((s) => s.version)
+  const routed = cachedRoutes(nodes, edges, labelVersion).get(id)
 
-  if (effSrcRect && effTgtRect && source !== target) {
+  let sx = routed?.source.x ?? sourceX
+  let sy = routed?.source.y ?? sourceY
+  let sp = routed?.source.position ?? sourcePosition ?? Position.Right
+  let tx = routed?.target.x ?? targetX
+  let ty = routed?.target.y ?? targetY
+  let tp = routed?.target.position ?? targetPosition ?? Position.Left
+
+  const previewing = preview !== null && effSrcRect !== null && effTgtRect !== null && source !== target
+  if (previewing) {
     const sc = { x: effSrcRect.x + effSrcRect.w / 2, y: effSrcRect.y + effSrcRect.h / 2 }
     const tc = { x: effTgtRect.x + effTgtRect.w / 2, y: effTgtRect.y + effTgtRect.h / 2 }
-    const sa = resolveAnchor(effSrcRect, tc, effSource)
-    const ta = resolveAnchor(effTgtRect, sc, effTarget)
-    sx = sa.x
-    sy = sa.y
-    sp = sa.position
-    tx = ta.x
-    ty = ta.y
-    tp = ta.position
-
-    // Fully-automatic siblings joining the same two nodes fan out sideways so
-    // their strokes never stack on one shared centre line.
-    if (!effSource && !effTarget) {
-      const siblings = edges.filter(
-        (e) =>
-          (e.source === source && e.target === target) ||
-          (e.source === target && e.target === source),
-      )
-      const rank = siblings.findIndex((e) => e.id === id)
-      const spread = (rank - (siblings.length - 1) / 2) * SIBLING_SPREAD
-      if (spread !== 0) {
-        const len = Math.hypot(tc.x - sc.x, tc.y - sc.y) || 1
-        const nx = -(tc.y - sc.y) / len
-        const ny = (tc.x - sc.x) / len
-        sx += nx * spread
-        sy += ny * spread
-        tx += nx * spread
-        ty += ny * spread
-      }
+    if (effSource || activeDrag === "source") {
+      const sa = resolveAnchor(effSrcRect, tc, effSource)
+      sx = sa.x
+      sy = sa.y
+      sp = sa.position
+    }
+    if (effTarget || activeDrag === "target") {
+      const ta = resolveAnchor(effTgtRect, sc, effTarget)
+      tx = ta.x
+      ty = ta.y
+      tp = ta.position
     }
   }
-
-  const endpointFamily = new Set([source, target])
-  for (const endpointId of [source, target]) {
-    let parentId = byId.get(endpointId)?.parentId
-    const seen = new Set<string>()
-    while (parentId && !seen.has(parentId)) {
-      seen.add(parentId)
-      endpointFamily.add(parentId)
-      parentId = byId.get(parentId)?.parentId
-    }
-  }
-  const routeClearance = 16
-  const obstacles: Rect[] = nodes.flatMap((node) => {
-    if (node.hidden || node.type === "text" || endpointFamily.has(node.id)) return []
-    const rect = absoluteRect(node, byId)
-    return [
-      {
-        x: rect.x - routeClearance,
-        y: rect.y - routeClearance,
-        w: rect.w + routeClearance * 2,
-        h: rect.h + routeClearance * 2,
-      },
-    ]
-  })
 
   // Manual routes keep the user's lanes; automatic routes avoid other cards.
   const manualRoute = readRoute(d.routePoints)
-  const routePoints = routePreview ?? (
-    manualRoute
-      ? resolveManualRoute(manualRoute, { x: sx, y: sy }, { x: tx, y: ty }, sp, tp)
-      : getObstacleAvoidingPath({
-          source: { x: sx, y: sy },
-          target: { x: tx, y: ty },
-          sourcePosition: sp,
-          targetPosition: tp,
-          obstacles,
-        })[3]
-  )
+  const previewRoute = (): RoutePoint[] => {
+    const from = { x: sx, y: sy }
+    const to = { x: tx, y: ty }
+    if (manualRoute) return resolveManualRoute(manualRoute, from, to, sp, tp)
+    const sourceId = activeDrag === "source" && dragOverId ? dragOverId : source
+    const targetId = activeDrag === "target" && dragOverId ? dragOverId : target
+    return getObstacleAvoidingPath({
+      source: from,
+      target: to,
+      sourcePosition: sp,
+      targetPosition: tp,
+      obstacles: routeObstacles(sourceId, targetId, nodes, byId),
+      sourceStub: stubLength(byId.get(sourceId), sp, byId, labelBoxesFor),
+      targetStub: stubLength(byId.get(targetId), tp, byId, labelBoxesFor),
+    })[3]
+  }
+  const routePoints = routePreview ?? (previewing || !routed ? previewRoute() : routed.points)
+  const gaps = routePreview || previewing ? [] : (routed?.gaps ?? [])
   const path = roundedPath(routePoints)
   const { x: labelX, y: labelY } = routeMidpoint(routePoints)
 
   /* ---------- Label auto-placement ---------- */
 
   const markerId = `arrow-${id}`
+  const gapMaskId = `gaps-${id}`
+  const tip = routePoints[routePoints.length - 1]
+  const beforeTip = routePoints[routePoints.length - 2] ?? tip
+  const run = Math.hypot(tip.x - beforeTip.x, tip.y - beforeTip.y) || 1
+  const headPath = `M ${tip.x - ((tip.x - beforeTip.x) / run) * 0.5} ${tip.y - ((tip.y - beforeTip.y) / run) * 0.5} L ${tip.x} ${tip.y}`
+  const maskBounds = (() => {
+    const xs = [...routePoints.map((p) => p.x), ...gaps.flatMap((g) => [g.x, g.x + g.w])]
+    const ys = [...routePoints.map((p) => p.y), ...gaps.flatMap((g) => [g.y, g.y + g.h])]
+    const x = Math.min(...xs) - 24
+    const y = Math.min(...ys) - 24
+    return { x, y, w: Math.max(...xs) - x + 24, h: Math.max(...ys) - y + 24 }
+  })()
   const hitRef = useRef<SVGPathElement>(null)
   const [autoPos, setAutoPos] = useState<{ x: number; y: number } | null>(null)
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null)
@@ -375,6 +357,14 @@ export function TechEdge({
           if (!dragRef.current) setHovered(false)
         }}
       />
+      {gaps.length > 0 ? (
+        <mask id={gapMaskId} maskUnits="userSpaceOnUse" x={maskBounds.x} y={maskBounds.y} width={maskBounds.w} height={maskBounds.h}>
+          <rect x={maskBounds.x} y={maskBounds.y} width={maskBounds.w} height={maskBounds.h} fill="white" />
+          {gaps.map((gap, index) => (
+            <rect key={index} x={gap.x} y={gap.y} width={gap.w} height={gap.h} rx={3} fill="black" />
+          ))}
+        </mask>
+      ) : null}
       <path
         id={id}
         d={path}
@@ -382,6 +372,14 @@ export function TechEdge({
         strokeWidth={selected ? 3 : 2.25}
         strokeLinecap="round"
         strokeDasharray={isDashed ? "7 6" : undefined}
+        mask={gaps.length > 0 ? `url(#${gapMaskId})` : undefined}
+        style={{ pointerEvents: "none", stroke: color }}
+      />
+      {/* The head is its own element so a label gap never clips it. */}
+      <path
+        d={headPath}
+        fill="none"
+        strokeWidth={selected ? 3 : 2.25}
         markerEnd={`url(#${markerId})`}
         style={{ pointerEvents: "none", stroke: color }}
       />

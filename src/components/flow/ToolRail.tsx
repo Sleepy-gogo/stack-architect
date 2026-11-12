@@ -1,4 +1,4 @@
-import { FrameIcon, HandIcon, MousePointer2Icon, TypeIcon } from "lucide-react"
+import { FrameIcon, HandIcon, ListIcon, MousePointer2Icon, TypeIcon } from "lucide-react"
 import { useStore, type Tool } from "@/lib/store"
 import { cn } from "@/lib/utils"
 import { IconButton } from "@/components/shared/IconButton"
@@ -16,6 +16,7 @@ const TOOLS: ToolSpec[] = [
   { id: "pan", label: "Pan", hint: "Drag to move the canvas", shortcut: "H", icon: HandIcon },
   { id: "frame", label: "Frame", hint: "Click the canvas to draw a frame", shortcut: "F", icon: FrameIcon },
   { id: "text", label: "Text", hint: "Click the canvas to drop floating text", shortcut: "N", icon: TypeIcon },
+  { id: "legend", label: "Legend", hint: "Click the canvas to explain the line styles", shortcut: "L", icon: ListIcon },
 ]
 
 export function ToolRail() {

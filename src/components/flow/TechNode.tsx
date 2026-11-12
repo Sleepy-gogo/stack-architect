@@ -1,9 +1,11 @@
+import { useLayoutEffect, useRef } from "react"
 import { Handle, Position, type NodeProps } from "@xyflow/react"
 import { cn } from "@/lib/utils"
 import { BrandIcon } from "./BrandIcon"
 import { NodeActions } from "./NodeActions"
 import { categoryMap } from "@/lib/catalog"
 import { resolveSwatch } from "@/lib/swatches"
+import { forgetLabelBoxes, setLabelBoxes } from "@/lib/label-metrics"
 import type { TechNodeData } from "@/lib/types"
 
 const HANDLE_POSITIONS = [
@@ -19,6 +21,28 @@ export function TechNode({ id, data, selected }: NodeProps) {
   const accent = resolveSwatch(d.colorOverride) ?? cat?.color ?? "#64748b"
   const isDark = d.dark === true
   const hasIconPlate = isDark && d.iconPlate === true
+  const nameRef = useRef<HTMLSpanElement>(null)
+  const subtitleRef = useRef<HTMLSpanElement>(null)
+
+  // Arrows leave a gap where they pass behind these lines. Offsets are layout
+  // sizes, unaffected by zoom, so this only reruns when the text changes.
+  useLayoutEffect(() => {
+    const measure = () => {
+      const boxes = [nameRef.current, subtitleRef.current].flatMap((el) => {
+        if (!el) return []
+        // Ink width, not the clamped box: short names leave the sides open.
+        const ink = el.firstElementChild instanceof HTMLElement ? el.firstElementChild : el
+        const w = Math.min(el.offsetWidth, ink.offsetWidth)
+        return [{ x: el.offsetLeft + (el.offsetWidth - w) / 2, y: el.offsetTop, w, h: el.offsetHeight }]
+      })
+      setLabelBoxes(id, boxes)
+    }
+    measure()
+    let cancelled = false
+    void document.fonts?.ready.then(() => { if (!cancelled) measure() })
+    return () => { cancelled = true }
+  }, [id, d.name, d.subtitle])
+  useLayoutEffect(() => () => forgetLabelBoxes(id), [id])
 
   return (
     <div className="group/node relative flex w-[148px] flex-col items-center gap-2.5">
@@ -69,15 +93,19 @@ export function TechNode({ id, data, selected }: NodeProps) {
 
       <div className="flex w-full flex-col items-center gap-0.5 text-center">
         <span
-          className="halo-text relative max-w-full text-[15px] leading-tight font-semibold tracking-[-0.012em] text-foreground"
+          ref={nameRef}
+          className="halo-text relative line-clamp-2 max-w-full text-[15px] leading-tight font-semibold tracking-[-0.012em] text-foreground"
           data-label={d.name}
+          title={d.name}
         >
           <span>{d.name}</span>
         </span>
         {d.subtitle ? (
           <span
-            className="halo-text relative max-w-full font-mono text-[11px] leading-tight tracking-[0.01em] text-muted-foreground"
+            ref={subtitleRef}
+            className="halo-text relative block max-w-full truncate font-mono text-[11px] leading-tight tracking-[0.01em] text-muted-foreground"
             data-label={d.subtitle}
+            title={d.subtitle}
           >
             <span>{d.subtitle}</span>
           </span>

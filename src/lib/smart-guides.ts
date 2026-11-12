@@ -1,5 +1,5 @@
-import { absoluteRect, type Rect } from "./geometry"
-import type { AppNode } from "./types"
+import { absoluteRect, anchorRect, type Rect } from "./geometry"
+import type { AppEdge, AppNode } from "./types"
 
 export type AlignmentGuide = {
   kind: "alignment"
@@ -206,9 +206,43 @@ function gapCandidates(
   return candidates
 }
 
-function bestCandidate(candidates: SnapCandidate[]): SnapCandidate | null {
+/**
+ * Line a moving card's center up with another card's center, which is what
+ * makes the arrow between them straight. Connected cards win close calls.
+ */
+function cardCenterCandidates(
+  movingCards: { id: string; rect: Rect }[],
+  targetCards: { id: string; rect: Rect }[],
+  connected: Set<string>,
+  axis: Axis,
+  threshold: number,
+): SnapCandidate[] {
+  const candidates: SnapCandidate[] = []
+  for (const moving of movingCards) {
+    const [, movingCenter] = axisValues(moving.rect, axis)
+    for (const target of targetCards) {
+      const [, targetCenter] = axisValues(target.rect, axis)
+      const delta = targetCenter - movingCenter
+      if (Math.abs(delta) > threshold) continue
+      const [movingFrom, movingTo] = perpendicularSpan(moving.rect, axis)
+      const [targetFrom, targetTo] = perpendicularSpan(target.rect, axis)
+      candidates.push({
+        delta,
+        priority: connected.has(`${moving.id}\u0000${target.id}`) ? -2 : -1,
+        guides: [{ kind: "alignment", axis, value: targetCenter,
+          from: Math.min(movingFrom, targetFrom), to: Math.max(movingTo, targetTo) }],
+      })
+    }
+  }
+  return candidates
+}
+
+function bestCandidate(candidates: SnapCandidate[], threshold: number): SnapCandidate | null {
   if (candidates.length === 0) return null
-  candidates.sort((a, b) => Math.abs(a.delta) - Math.abs(b.delta) || a.priority - b.priority)
+  // Priority buys up to half the threshold: a connected card a few pixels
+  // further away still beats an unrelated edge alignment.
+  const cost = (candidate: SnapCandidate) => Math.abs(candidate.delta) + candidate.priority * threshold * 0.25
+  candidates.sort((a, b) => cost(a) - cost(b) || a.priority - b.priority)
   const best = candidates[0]
 
   const matching = candidates.filter((candidate) => Math.abs(candidate.delta - best.delta) < EPSILON)
@@ -235,6 +269,7 @@ export function computeSmartSnap(
   nodes: AppNode[],
   draggedNodeIds: string[],
   threshold: number,
+  edges: AppEdge[] = [],
 ): SmartSnap | null {
   if (draggedNodeIds.length === 0) return null
   const byId = new Map(nodes.map((node) => [node.id, node]))
@@ -255,14 +290,25 @@ export function computeSmartSnap(
     .map((node) => absoluteRect(node, byId))
   if (targets.length === 0) return null
 
+  const cardOf = (node: AppNode) => ({ id: node.id, rect: anchorRect(node, byId) })
+  const movingCards = nodes.filter((node) => ignoredIds.has(node.id) && !node.hidden && node.type !== "text").map(cardOf)
+  const targetCards = nodes.filter((node) => !node.hidden && !ignoredIds.has(node.id) && node.type !== "text").map(cardOf)
+  const connected = new Set<string>()
+  for (const edge of edges) {
+    connected.add(`${edge.source}\u0000${edge.target}`)
+    connected.add(`${edge.target}\u0000${edge.source}`)
+  }
+
   const x = bestCandidate([
+    ...cardCenterCandidates(movingCards, targetCards, connected, "x", threshold),
     ...alignmentCandidates(moving, targets, "x", threshold),
     ...gapCandidates(moving, targets, "x", threshold),
-  ])
+  ], threshold)
   const y = bestCandidate([
+    ...cardCenterCandidates(movingCards, targetCards, connected, "y", threshold),
     ...alignmentCandidates(moving, targets, "y", threshold),
     ...gapCandidates(moving, targets, "y", threshold),
-  ])
+  ], threshold)
   if (!x && !y) return null
 
   return {

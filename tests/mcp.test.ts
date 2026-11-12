@@ -107,8 +107,9 @@ test("documented styled example survives validation, layout and persistence", as
     const original = document.edges.find((entry: { id: string }) => entry.id === edge.id)
     assert.equal(edge.data?.colorOverride, original.data.colorOverride)
     assert.equal(edge.data?.style, original.data.style)
-    assert.ok(edge.data?.sourcePoint)
-    assert.ok(edge.data?.targetPoint)
+    // Ports are shared out live in the editor, so nothing is pinned on save.
+    assert.equal(edge.data?.sourcePoint, undefined)
+    assert.equal(edge.data?.targetPoint, undefined)
   }
 })
 
@@ -116,11 +117,11 @@ test("all catalog categories are accepted and invalid icons and colors fail befo
   const { techCatalog } = await import("../src/lib/catalog.js")
   for (const category of new Set(techCatalog.map((item) => item.category))) {
     const item = techCatalog.find((entry) => entry.category === category)!
-    assert.doesNotThrow(() => prepareDocument({ version: 1, title: category, nodes: [{ id: "a", type: "tech", data: {
+    await assert.doesNotReject(prepareDocument({ version: 1, title: category, nodes: [{ id: "a", type: "tech", data: {
       slug: item.slug, name: item.name, subtitle: item.subtitle, category,
     } }], edges: [] }))
   }
-  assert.throws(() => prepareDocument({ ...graph(), nodes: [{ ...tech("web"), data: { ...tech("web").data, slug: "nonexistent-brand" } }, tech("api")] }), /search_architecture_icons/u)
+  await assert.rejects(prepareDocument({ ...graph(), nodes: [{ ...tech("web"), data: { ...tech("web").data, slug: "nonexistent-brand" } }, tech("api")] }), /search_architecture_icons/u)
   const ctx = setup()
   const invalid = { ...graph(), edges: [{ id: "e", source: "web", target: "api", data: { colorOverride: "url(https://invalid.example)" } }] }
   const response = await result(await handleMcp(request(call(invalid)), ctx.dependencies))
@@ -187,18 +188,18 @@ test("storage failures do not expose credentials or database details", async () 
   assert.equal(JSON.stringify(failed).includes("private-turso-credential"), false)
 })
 
-test("schema rejects duplicate IDs, missing parents, group cycles, unsafe props and unbounded graphs", () => {
-  assert.throws(() => prepareDocument({ ...graph(), nodes: [tech("a"), tech("a")] }))
-  assert.throws(() => prepareDocument({ ...graph(), nodes: [tech("a", "missing")] }))
+test("schema rejects duplicate IDs, missing parents, group cycles, unsafe props and unbounded graphs", async () => {
+  await assert.rejects(prepareDocument({ ...graph(), nodes: [tech("a"), tech("a")] }))
+  await assert.rejects(prepareDocument({ ...graph(), nodes: [tech("a", "missing")] }))
   const group = (id: string, parentId: string) => ({ id, parentId, type: "group", data: { label: id, color: "#abcdef" } })
-  assert.throws(() => prepareDocument({ ...graph(), nodes: [group("a", "b"), group("b", "a")] }))
-  assert.throws(() => prepareDocument({ ...graph(), nodes: [{ ...tech("a"), style: { backgroundImage: "url(https://tracker.example)" } }] }))
-  assert.throws(() => prepareDocument({ ...graph(), nodes: Array.from({ length: 81 }, (_, n) => tech(`n${n}`)) }))
-  assert.throws(() => prepareDocument({ ...graph(), version: 2 }))
+  await assert.rejects(prepareDocument({ ...graph(), nodes: [group("a", "b"), group("b", "a")] }))
+  await assert.rejects(prepareDocument({ ...graph(), nodes: [{ ...tech("a"), style: { backgroundImage: "url(https://tracker.example)" } }] }))
+  await assert.rejects(prepareDocument({ ...graph(), nodes: Array.from({ length: 81 }, (_, n) => tech(`n${n}`)) }))
+  await assert.rejects(prepareDocument({ ...graph(), version: 2 }))
 })
 
-test("nested groups are sized around laid out children and parents precede children", () => {
-  const doc = prepareDocument({ version: 1, title: "Groups", nodes: [tech("a", "inner"), tech("b", "inner"),
+test("nested groups are sized around laid out children and parents precede children", async () => {
+  const doc = await prepareDocument({ version: 1, title: "Groups", nodes: [tech("a", "inner"), tech("b", "inner"),
     { id: "inner", parentId: "outer", type: "group", data: { label: "Inner", color: "#abcdef" } },
     { id: "outer", type: "group", data: { label: "Outer", color: "#abcdef" } }],
     edges: [{ id: "ab", source: "a", target: "b" }],
@@ -210,5 +211,17 @@ test("nested groups are sized around laid out children and parents precede child
   assert.ok(outer.width! >= inner.position.x + inner.width!)
   assert.ok(outer.height! >= inner.position.y + inner.height!)
   assert.equal(doc.edges[0].source, "a")
-  assert.deepEqual(prepareDocument({ version: 1, title: "Empty group", nodes: [{ id: "g", type: "group", data: { label: "G", color: "#abcdef" } }], edges: [] }).nodes[0].width, 240)
+  assert.deepEqual((await prepareDocument({ version: 1, title: "Empty group", nodes: [{ id: "g", type: "group", data: { label: "G", color: "#abcdef" } }], edges: [] })).nodes[0].width, 240)
+})
+
+test("a document legend becomes a legend node placed below the diagram", async () => {
+  const doc = await prepareDocument({ ...graph(), nodes: [...graph().nodes, { id: "legend", type: "text", data: { text: "Taken id" } }],
+    legend: { title: "Arrows", items: [{ label: "Request", style: "solid" }, { label: "Callback", style: "dashed", color: "#0284c7" }] } })
+  const legend = doc.nodes.find((node) => node.type === "legend")!
+  assert.equal(legend.id, "legend-2")
+  assert.deepEqual((legend.data as { items: unknown[] }).items.length, 2)
+  const web = doc.nodes.find((node) => node.id === "web")!
+  assert.ok(legend.position.y > web.position.y)
+  await assert.rejects(prepareDocument({ ...graph(), legend: { items: [] } }))
+  await assert.rejects(prepareDocument({ ...graph(), nodes: [{ ...tech("web"), data: { ...tech("web").data, subtitle: "x".repeat(41) } }, tech("api")] }))
 })

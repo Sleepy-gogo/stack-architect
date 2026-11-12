@@ -46,3 +46,18 @@ test("a selective overview has no structural warnings without pretending to prov
   assert.deepEqual(review.findings, [])
   assert.equal(review.summary.maxConnections, 1)
 })
+
+test("a rainbow of arrow colors is flagged, and a legend answers the missing-legend hint", () => {
+  const colors = ["#2563eb", "#8b5cf6", "#0d9488", "#f97316", "#ef4444"]
+  const nodes = [node("hub"), ...colors.map((_, i) => node(`n${i}`))]
+  const edges = colors.map((color, i) => ({ ...edge(`e${i}`, "hub", `n${i}`), data: { colorOverride: color } }))
+  const codes = reviewDocument({ version: 1, title: "Rainbow", nodes, edges }).findings.map((finding) => finding.code)
+  assert.ok(codes.includes("many-arrow-colors"))
+  assert.ok(codes.includes("missing-legend"))
+
+  const two = edges.slice(0, 2)
+  const legend = { items: [{ label: "Requests", color: "#2563eb" }, { label: "Client", color: "#8b5cf6" }] }
+  const withLegend = reviewDocument({ version: 1, title: "Two", nodes, edges: two, legend }).findings.map((finding) => finding.code)
+  assert.equal(withLegend.includes("missing-legend"), false)
+  assert.equal(withLegend.includes("many-arrow-colors"), false)
+})
